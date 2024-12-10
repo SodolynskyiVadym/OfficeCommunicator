@@ -33,7 +33,7 @@
             "commandLineArgs": "watch run",
             "workingDirectory": "$(ProjectDir)",
             "launchBrowser": false,
-            "applicationUrl": "http://localhost:5160",
+            "applicationUrl": "http://localhost:5207",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
             }

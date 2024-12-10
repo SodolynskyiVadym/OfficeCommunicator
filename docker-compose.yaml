@@ -1,0 +1,43 @@
+﻿version: '3'
+
+services:
+  api:
+    image: office_communicator_api
+    container_name: api
+    build:
+      context: ./OfficeCommunicatorAPI
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=DockerEnv
+      - DATABASE_CONNECTION_STRING=Server=mssql-server;User Id=SA;Password=Test1234;TrustServerCertificate=True;
+    ports:
+      - "5207:5207"
+    depends_on:
+      - database
+
+
+
+  database:
+    image: mcr.microsoft.com/mssql/server
+    container_name: mssql-server
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Test1234
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./database/db_data:/var/opt/mssql/data
+  
+  
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: "azurite"
+    hostname: azurite
+    restart: always
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"

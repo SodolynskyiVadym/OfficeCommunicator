@@ -7,6 +7,8 @@
 .buildtasks/
 templatesTest/
 
+database/db_data
+
 # User-specific files
 *.rsuser
 *.suo
