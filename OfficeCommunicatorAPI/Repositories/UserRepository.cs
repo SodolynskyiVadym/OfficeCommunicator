@@ -29,11 +29,9 @@ namespace OfficeCommunicatorAPI.Repositories
             return await _dbContext.Users.FindAsync(id);
         }
         
-        public async Task<User?> GetByIdentityAsync(UserIdentityPasswordDto userDto)
+        public async Task<User?> GetByEmailAsync(UserEmailPasswordDto userDto)
         {
-            bool isEmail = _authHelper.IsEmail(userDto.Identity);
-            if(isEmail) return await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userDto.Identity);
-            return await _dbContext.Users.FirstOrDefaultAsync(u => u.UniqueName == userDto.Identity);
+            return await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         }
 
         public Task<User?> GetByIdWithIncludeAsync(int id)

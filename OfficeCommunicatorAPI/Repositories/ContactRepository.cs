@@ -8,10 +8,10 @@ namespace OfficeCommunicatorAPI.Repositories;
 
 public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateDto>
 {
-    private OfficeDbContext _dbContext;
-    private IMapper _mapper;
+    private readonly OfficeDbContext _dbContext;
+    private readonly IMapper _mapper;
     
-    public ContactRepository(IMapper mapper, OfficeDbContext dbContext)
+    public ContactRepository(OfficeDbContext dbContext, IMapper mapper)
     {
         _mapper = mapper;
         _dbContext = dbContext;
@@ -19,7 +19,9 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
     
     public async Task<Contact?> GetByIdWithIncludeAsync(int id)
     {
-        return await _dbContext.Contacts.Include(c => c.Chat)
+        return await _dbContext.Contacts
+            .Include(c => c.Chat)
+            .ThenInclude(c => c.Messages)
             .Include(c => c.AssociatedUser)
             .FirstOrDefaultAsync(c => c.Id == id);
     }

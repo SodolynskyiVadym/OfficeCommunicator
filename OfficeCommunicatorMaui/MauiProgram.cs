@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using OfficeCommunicatorMaui.Services.API;
 using OfficeCommunicatorMAUI.Services;
 
 namespace OfficeCommunicatorMaui;
@@ -14,12 +15,21 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<SignalRService>(sp => new SignalRService("http://localhost:5291/shoppingListHub"));
+        //builder.Services.AddSingleton<HttpClient>(sp => new HttpClient()
+        //{
+        //    BaseAddress = new Uri("http://localhost:5207")
+        //});
+
+        // Register AuthApiService
+        builder.Services.AddSingleton<AuthApiService>();
+
+
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
-        
+
         return builder.Build();
     }
 }

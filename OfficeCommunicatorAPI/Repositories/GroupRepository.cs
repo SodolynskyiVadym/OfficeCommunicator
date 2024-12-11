@@ -9,9 +9,9 @@ namespace OfficeCommunicatorAPI.Repositories;
 public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
 {
     private readonly OfficeDbContext _dbContext;
-    private IMapper _mapper;
+    private readonly IMapper _mapper;
 
-    public GroupRepository(IMapper mapper, OfficeDbContext dbContext)
+    public GroupRepository(OfficeDbContext dbContext, IMapper mapper)
     {
         _mapper = mapper;
         _dbContext = dbContext;
@@ -23,6 +23,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
             .Include(c => c.Users)
             .Include(c => c.Admins)
             .Include(c => c.Chat)
+            .ThenInclude(c => c.Messages)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
@@ -67,5 +68,19 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         _dbContext.Groups.Remove(group);    
         int result = await _dbContext.SaveChangesAsync();
         return result > 0;
+    }
+    
+    
+    public async Task<Group?> GetGroupWithUsers(int groupId)
+    {
+        return await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
+    }
+    
+    public async Task<bool> IsUserAdmin(int groupId, int userId)
+    {
+        Group? group = await _dbContext.Groups.Include(g => g.Admins).FirstOrDefaultAsync(g => g.Id == groupId);
+        if (group == null) return false;
+        
+        return group.Admins.Any(a => a.Id == userId);
     }
 }

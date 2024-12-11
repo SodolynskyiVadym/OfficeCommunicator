@@ -55,18 +55,20 @@ namespace OfficeCommunicatorAPI.Controllers
             if (user.Id <= 0) return BadRequest("Failed to add user");
             
             string token = _authHelper.CreateToken(user);
-            return Ok(new Dictionary<string, string>(){{"token", token}});
+            return Ok(token);
         }
         
         
         [HttpPost("login")]
-        public async Task<IActionResult> Login(UserIdentityPasswordDto userDto)
+        public async Task<IActionResult> Login(UserEmailPasswordDto userDto)
         {
-            User? user = await _userRepository.GetByIdentityAsync(userDto);
+            Console.WriteLine("Login");
+            User? user = await _userRepository.GetByEmailAsync(userDto);
             if (user == null) return BadRequest("User not found");
             
             string token = _authHelper.CreateToken(user);
-            return Ok(new Dictionary<string, string>(){{"token", token}});
+            return Ok(new Dictionary<string, string>() { { "token", token } });
+            //return Ok(token);
         }
         
         

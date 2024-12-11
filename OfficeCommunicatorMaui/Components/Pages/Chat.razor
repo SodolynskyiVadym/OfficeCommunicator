@@ -45,7 +45,7 @@ else
         {
             Console.Beep();
             Messages = list;
-			InvokeAsync(StateHasChanged);
+            InvokeAsync(StateHasChanged);
         });
 
         HubConnection.On<string, List<string>>("JoinShoppingList", (listId, list) =>
@@ -71,14 +71,14 @@ else
         await HubConnection.InvokeAsync("AddItem", ListId, Item);
         Messages.Add(Item);
         Item = string.Empty;
-        InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RemoveItem(string message)
     {
         Messages.Remove(message);
         await HubConnection.InvokeAsync("RemoveItem", ListId, message);
-		InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task JoinList()

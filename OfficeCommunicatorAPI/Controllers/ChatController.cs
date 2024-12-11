@@ -18,8 +18,8 @@ public class ChatController : ControllerBase
     public ChatController(IMapper mapper, OfficeDbContext dbContext)
     {
         _mapper = mapper;
-        _contactRepository = new ContactRepository(mapper, dbContext);
-        _groupRepository = new GroupRepository(mapper, dbContext);
+        _contactRepository = new ContactRepository(dbContext, mapper);
+        _groupRepository = new GroupRepository(dbContext, mapper);
     }
     
     [HttpPost("create-contact")]
