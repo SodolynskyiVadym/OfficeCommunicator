@@ -12,27 +12,27 @@ string passwordKey;
 
 if (builder.Environment.IsDevelopment())
 {
-    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
-    jwtKey = builder.Configuration.GetSection("AuthSetting:TokenKey").Value ?? throw new InvalidOperationException();
-    passwordKey = builder.Configuration.GetSection("AuthSetting:passwordKey").Value ?? throw new InvalidOperationException();
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentException();
+    jwtKey = builder.Configuration.GetSection("AuthSetting:TokenKey").Value ?? throw new ArgumentException();
+    passwordKey = builder.Configuration.GetSection("AuthSetting:passwordKey").Value ?? throw new ArgumentException();
 }
 else if (builder.Environment.IsEnvironment("DockerEnv"))
 {
-    connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING") ?? throw new InvalidOperationException();
-    jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new InvalidOperationException();
-    passwordKey = Environment.GetEnvironmentVariable("PASSWORD_KEY") ?? throw new InvalidOperationException();
+    connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING") ?? throw new ArgumentException();
+    jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new ArgumentException();
+    passwordKey = Environment.GetEnvironmentVariable("PASSWORD_KEY") ?? throw new ArgumentException();
 }
 else if(builder.Environment.IsEnvironment("AzureEnv"))
 {
-    connectionString = Environment.GetEnvironmentVariable("AzureConnection") ?? throw new InvalidOperationException();
-    jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new InvalidOperationException();
-    passwordKey = Environment.GetEnvironmentVariable("PASSWORD_KEY") ?? throw new InvalidOperationException();
+    connectionString = Environment.GetEnvironmentVariable("AzureConnection") ?? throw new ArgumentException();
+    jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new ArgumentException();
+    passwordKey = Environment.GetEnvironmentVariable("PASSWORD_KEY") ?? throw new ArgumentException();
 }
 else
 {
-    connectionString = builder.Configuration.GetConnectionString("ConnectionStrings:ProductionConnection") ?? throw new InvalidOperationException();
-    jwtKey = builder.Configuration.GetSection("AuthSetting:TokenKey").Value ?? throw new InvalidOperationException();
-    passwordKey = builder.Configuration.GetSection("AuthSetting:PasswordKey").Value ?? throw new InvalidOperationException();
+    connectionString = builder.Configuration.GetConnectionString("ConnectionStrings:ProductionConnection") ?? throw new ArgumentException();
+    jwtKey = builder.Configuration.GetSection("AuthSetting:TokenKey").Value ?? throw new ArgumentException();
+    passwordKey = builder.Configuration.GetSection("AuthSetting:PasswordKey").Value ?? throw new ArgumentException();
 }
 
 builder.Services.AddControllers();

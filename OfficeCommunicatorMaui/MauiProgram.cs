@@ -13,15 +13,13 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
 
-        builder.Services.AddMauiBlazorWebView();
-        builder.Services.AddSingleton<SignalRService>(sp => new SignalRService("http://localhost:5291/shoppingListHub"));
-        //builder.Services.AddSingleton<HttpClient>(sp => new HttpClient()
-        //{
-        //    BaseAddress = new Uri("http://localhost:5207")
-        //});
+        string serverUrl = "http://localhost:5207";
 
-        // Register AuthApiService
-        builder.Services.AddSingleton<AuthApiService>();
+        builder.Services.AddMauiBlazorWebView();
+
+        HttpClient httpClient = new HttpClient();
+        builder.Services.AddSingleton(sp => new AuthApiService(serverUrl, httpClient));
+        builder.Services.AddSingleton(sp => new GroupApiService(serverUrl, httpClient));
 
 
 
