@@ -1,4 +1,6 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using OfficeCommunicatorMaui.Models;
 
 namespace OfficeCommunicatorMaui.Services.API
 {
@@ -13,10 +15,26 @@ namespace OfficeCommunicatorMaui.Services.API
             _url = url + "/user";
         }
 
+        public async Task<User> GetUser(string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.GetAsync(_url + "/get");
+            if (response.IsSuccessStatusCode)
+            {
+                User? result = await response.Content.ReadFromJsonAsync<User>();
+                if(result == null) throw new Exception("User not found");
+                return result;
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to get user: {error}");
+            }
+        }
+
         public async Task<string?> LoginAsync(string username, string password)
         {
             var loginRequest = new { Email = username, Password = password };
-            //var response = await _httpClient.PostAsync("http://localhost:5207/user/login", JsonRequestConvert.ConvertToJsonRequest(loginRequest));
             var response = await _httpClient.PostAsync(_url + "/login", JsonRequestConvert.ConvertToJsonRequest(loginRequest));
             if (response.IsSuccessStatusCode)
             {

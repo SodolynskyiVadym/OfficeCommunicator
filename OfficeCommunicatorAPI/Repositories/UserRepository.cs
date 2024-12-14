@@ -28,15 +28,32 @@ namespace OfficeCommunicatorAPI.Repositories
         {
             return await _dbContext.Users.FindAsync(id);
         }
-        
+
+
+        public async Task<User?> GetByIdWithIncludeAsync(int id)
+        {
+            return await _dbContext.Users
+                .Include(u => u.Groups)
+                .Include(u => u.Contacts)
+                .ThenInclude(c => c.AssociatedUser)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
         public async Task<User?> GetByEmailAsync(UserEmailPasswordDto userDto)
         {
             return await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         }
 
-        public Task<User?> GetByIdWithIncludeAsync(int id)
+        public async Task<UserPresentDto?> GetUserPresentByIdWithIncludeAsync(int id)
         {
-            throw new NotImplementedException();
+            User? user = await _dbContext.Users
+                .Include(u => u.Groups)
+                .Include(u => u.Contacts)
+                .ThenInclude(c => c.AssociatedUser)
+                .FirstOrDefaultAsync(u => u.Id == id);
+            
+            if (user == null) return null;
+            return _mapper.Map<UserPresentDto>(user);
         }
 
         public async Task<User> AddAsync(UserDto userDto)
@@ -73,6 +90,18 @@ namespace OfficeCommunicatorAPI.Repositories
             _dbContext.Users.Remove(user);
             int result = await _dbContext.SaveChangesAsync();
             return result > 0;
+        }
+
+
+        public async Task<bool> IsUserGroup(int userId, int groupId)
+        {
+            User? user =  await _dbContext.Users
+                .Include(u => u.Groups)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) return false;
+
+            return user.Groups.Any(g => g.Id == groupId);
         }
     }
 }

@@ -15,13 +15,15 @@ public class CommunicatorHub : Hub
     private readonly MessageRepository _messageRepository;
     private static int _counter;
 
-    public CommunicatorHub(IMapper mapper, OfficeDbContext dbContext, AuthHelper authHelper, MessageRepository messageRepository)
+    public CommunicatorHub(IMapper mapper, OfficeDbContext dbContext, AuthHelper authHelper)
     {
         _messageRepository = new MessageRepository(dbContext, mapper);
         _userRepository = new UserRepository(dbContext, mapper, authHelper);
         _groupRepository = new GroupRepository(dbContext, mapper);
         _contactRepository = new ContactRepository(dbContext, mapper);
     }
+
+
 
     public override async Task OnConnectedAsync()
     {
@@ -36,6 +38,7 @@ public class CommunicatorHub : Hub
         Console.WriteLine($"A client connected {DateTime.Now}. Total clients: {_counter}");
         await base.OnConnectedAsync();
     }
+
 
 
     public async Task JoinGroup(string communication, int communicationId)
@@ -63,6 +66,7 @@ public class CommunicatorHub : Hub
         }else throw new ArgumentException("Invalid communication type");
     }
     
+
     
     public async Task SendMessage(int communicationId, string communication, string content)
     {
@@ -106,6 +110,7 @@ public class CommunicatorHub : Hub
         
         await Clients.Group(hubGroupName).SendAsync("ReceiveMessage", communicationId, communication, message);
     }
+
 
     public async Task RemoveMessage(int communicationId, string communication, int messageId)
     {

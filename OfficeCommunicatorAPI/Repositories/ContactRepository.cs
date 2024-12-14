@@ -31,6 +31,17 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         return await _dbContext.Contacts.FindAsync(id);
     }
 
+    public async Task<Contact?> GetByUserIdAndAssociatedUserIdAsync(int userId, int associatedUserId)
+    {
+        Console.WriteLine(userId);
+        Console.WriteLine(associatedUserId);
+        return await _dbContext.Contacts
+            .Include(c => c.Chat)
+            .ThenInclude(c => c.Messages)
+            .Include(c => c.AssociatedUser)
+            .FirstOrDefaultAsync(c => c.UserId == userId && c.AssociatedUserId == associatedUserId);
+    }
+
     public async Task<List<Contact>> GetAllAsync()
     {
         return await _dbContext.Contacts.Include(c => c.AssociatedUser).ToListAsync();

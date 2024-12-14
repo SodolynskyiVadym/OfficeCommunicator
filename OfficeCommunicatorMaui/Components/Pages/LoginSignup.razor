@@ -1,6 +1,6 @@
-﻿@page "/login"
-@using OfficeCommunicatorMaui.Services.API
+﻿@page "/loginSignup"
 @inject AuthApiService AuthApiService
+@inject NavigationManager NavigationManager
 
 <input type="text" placeholder="Username" @bind="email"/>
 <input type="password" placeholder="Password" @bind="password"/>
@@ -19,14 +19,16 @@
         try
         {
             token = await AuthApiService.LoginAsync(email, password);
-            Console.WriteLine(token);
-            // Handle successful login, e.g., store token, navigate to another page
+            if (!string.IsNullOrEmpty(token))
+            {
+                await TokenService.SaveTokenAsync(token);
+				NavigationManager.NavigateTo("/chat", replace: true);
+            }
+            else throw new Exception("Invalid login");
         }
         catch (Exception ex)
         {
 			errorMessage = ex.Message;
-            // Handle login error
-            Console.WriteLine($"Login failed: {ex.Message}");
         }
     }
 }

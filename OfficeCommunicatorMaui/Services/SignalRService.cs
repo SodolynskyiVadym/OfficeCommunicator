@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 
-namespace OfficeCommunicatorMAUI.Services
+namespace OfficeCommunicatorMaui.Services
 {
     public class SignalRService
     {

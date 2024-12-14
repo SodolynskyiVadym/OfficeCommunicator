@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using OfficeCommunicatorMaui.Services;
 using OfficeCommunicatorMaui.Services.API;
-using OfficeCommunicatorMAUI.Services;
-
 namespace OfficeCommunicatorMaui;
 
 public static class MauiProgram
@@ -20,6 +19,8 @@ public static class MauiProgram
         HttpClient httpClient = new HttpClient();
         builder.Services.AddSingleton(sp => new AuthApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new GroupApiService(serverUrl, httpClient));
+        builder.Services.AddSingleton(sp => new ContactApiService(serverUrl, httpClient));
+        builder.Services.AddSingleton(sp => new SignalRService(serverUrl + "/chatHub"));
 
 
 

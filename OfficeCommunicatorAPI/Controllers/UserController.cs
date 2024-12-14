@@ -25,19 +25,29 @@ namespace OfficeCommunicatorAPI.Controllers
 
         [Authorize]
         [HttpGet("get")]
-        public async Task<UserDto?> Get()
+        public async Task<UserPresentDto?> Get()
         {
             bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
             if (!result) return null;
             
-            User? user = await _userRepository.GetByIdAsync(userId);
-            if (user == null) return null;
-            
-            UserDto userDto = _mapper.Map<UserDto>(user);
-            return userDto;
+            return await _userRepository.GetUserPresentByIdWithIncludeAsync(userId);
         }
-        
-        
+
+
+        [Authorize]
+        [HttpGet("getUserGroupsContacts")]
+        public async Task<IActionResult> GetUserGroupsContacts()
+        {
+            bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
+            if (!result) return BadRequest("Invalid user id");
+
+            UserPresentDto? user = await _userRepository.GetUserPresentByIdWithIncludeAsync(userId);
+            if (user == null) return BadRequest("User not found");
+
+            return Ok(new { user.Groups, user.Contacts });
+        }
+
+
         [HttpGet("getAll")]
         public async Task<IActionResult> GetAll()
         {
@@ -55,7 +65,7 @@ namespace OfficeCommunicatorAPI.Controllers
             if (user.Id <= 0) return BadRequest("Failed to add user");
             
             string token = _authHelper.CreateToken(user);
-            return Ok(token);
+            return Ok(new Dictionary<string, string>() { { "token", token } });
         }
         
         
@@ -68,7 +78,6 @@ namespace OfficeCommunicatorAPI.Controllers
             
             string token = _authHelper.CreateToken(user);
             return Ok(new Dictionary<string, string>() { { "token", token } });
-            //return Ok(token);
         }
         
         

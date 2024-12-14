@@ -1,17 +1,97 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject AuthApiService AuthApiService
+
+<header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
+  <div class="container-fluid">
+    <div class="d-flex flex-wrap align-items-center justify-content-between">
+      <a href="/" class="d-flex align-items-center text-white text-decoration-none">
+        <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+      </a>
+
+      <ul class="nav me-auto">
+        <li><a href="#" class="nav-link px-2 text-secondary">Home</a></li>
+        <li><a href="#" class="nav-link px-2 text-white">Features</a></li>
+        <li><a href="#" class="nav-link px-2 text-white">Pricing</a></li>
+        <li><a href="#" class="nav-link px-2 text-white">FAQs</a></li>
+        <li><a href="#" class="nav-link px-2 text-white">About</a></li>
+      </ul>
+
+      <form class="d-flex me-3">
+        <input type="search" class="form-control form-control-dark" placeholder="Search..." aria-label="Search">
+      </form>
+
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-light me-2">Login</button>
+        <button type="button" class="btn btn-warning">Sign-up</button>
+      </div>
+    </div>
+  </div>
+</header>
+
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+    @if (isAuth)
+    {
+        <div class="sidebar">
+            <NavMenu Groups="user.Groups" Contacts="user.Contacts" />
         </div>
+    }
 
-        <article class="content px-4">
-            @Body
-        </article>
+    <main>   
+        <article class="content px-4">  
+            @Body  
+        </article>  
     </main>
 </div>
+
+@code{
+    private string? token { get; set; }
+    private bool isAuth { get; set; }
+    private User user { get; set; }
+    private HubConnection hubConnection { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        token = await TokenService.GetTokenAsync();
+        if (string.IsNullOrEmpty(token))
+        {
+            IsAuth = false;
+			TokenService.RemoveToken();
+            NavigationManager.NavigateTo("/loginSignup", replace: true);
+        }
+
+        user = await AuthApiService.GetUser(token);
+        if (user == null)
+        {
+            IsAuth = false;
+            TokenService.RemoveToken();
+            NavigationManager.NavigateTo("/loginSignup", replace: true);
+		}
+
+
+        string serverUrl = "http://localhost:5207/chatHub";
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(serverUrl, options =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+            })
+        .Build();
+        await HubConnection.StartAsync();
+
+		if (hubConnection.State != HubConnectionState.Connected)
+		{
+			IsAuth = false;
+			TokenService.RemoveToken();
+			NavigationManager.NavigateTo("/loginSignup", replace: true);
+		}
+
+        HubConnection.On<int, string, Message>("ReveiveMessage", (communicationId, communication, message) =>
+        {
+			Console.Beep();
+        });
+
+		else IsAuth = true;
+    }
+}
+https://0.0.0.0/

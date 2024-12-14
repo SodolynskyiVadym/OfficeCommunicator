@@ -35,7 +35,8 @@ else
     passwordKey = builder.Configuration.GetSection("AuthSetting:PasswordKey").Value ?? throw new ArgumentException();
 }
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+//builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -44,11 +45,11 @@ builder.Services.AddDbContext<OfficeDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-builder.Services.AddSingleton<DapperDbContext>(sp => new DapperDbContext(connectionString));
+builder.Services.AddSingleton(sp => new DapperDbContext(connectionString));
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
-builder.Services.AddSingleton<AuthHelper>(sp => new AuthHelper(jwtKey, passwordKey));
+builder.Services.AddSingleton(sp => new AuthHelper(jwtKey, passwordKey));
 
 
 builder.Services.AddCors(options =>

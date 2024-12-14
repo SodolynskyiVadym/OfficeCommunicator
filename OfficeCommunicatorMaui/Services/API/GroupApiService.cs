@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OfficeCommunicatorMaui.Services.API
+﻿namespace OfficeCommunicatorMaui.Services.API
 {
     public class GroupApiService
     {
@@ -14,7 +8,7 @@ namespace OfficeCommunicatorMaui.Services.API
         public GroupApiService(string url, HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _url = url + "group";
+            _url = url + "/group";
         }
 
         //public async Task<List<Group>> GetUserGroupsAsync(string token)

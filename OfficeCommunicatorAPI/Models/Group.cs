@@ -8,6 +8,17 @@ public class Group
     
     public int ChatId { get; set; }
     public Chat Chat { get; set; }
-    public IEnumerable<User> Admins { get; set; }
-    public IEnumerable<User> Users { get; set; }
+    public List<User> Admins { get; set; }
+    public List<User> Users { get; set; }
+
+    public Group CreatePresentGroupModel()
+    {
+        return new Group()
+        {
+            Id = this.Id,
+            Name = this.Name,
+            UniqueIdentifier = this.UniqueIdentifier,
+            ChatId = this.ChatId
+        };
+    }
 }

@@ -1,5 +1,24 @@
 ﻿@page "/"
+@inject NavigationManager NavigationManager
+
 
 <h1>Hello, world!</h1>
-
+<h1>@token</h1>
 Welcome to your new app.
+
+@code{
+	private string token { get; set; } = string.Empty;
+	private string errorMessage { get; set; } = string.Empty;
+	// protected override async Task OnInitializedAsync()
+	// {
+	// 	try
+	// 	{
+	// 		token = await TokenService.GetTokenAsync() ?? "";
+	// 		NavigationManager.NavigateTo("/chat", replace: true);
+	// 	}
+	// 	catch (Exception ex)
+	// 	{
+	// 		errorMessage = ex.Message;
+	// 	}
+	// }
+}

@@ -1,0 +1,45 @@
+﻿@page "/contact/{ContactId:int}"
+@inject ContactApiService ContactApiService
+
+@if (contact != null)
+{
+		@foreach(var message in contact.Chat.Messages)
+		{
+			<h4>@message</h4>
+		}
+
+		<input type="text" @bind="enteredMessage" />
+		<button @onclick="SendMessage">Send</button>
+}
+else
+{
+		<h1>Loading...</h1>
+}
+
+@code {
+    [Parameter]
+    public int ContactId { get; set; }
+	private string token { get; set; } = string.Empty;
+	private string enteredMessage { get; set; } = string.Empty;
+	public Contact? contact { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+
+		token = await TokenService.GetTokenAsync() ?? "";
+		if (string.IsNullOrEmpty(token)) return;
+
+		contact = await ContactApiService.GetContactAsync(ContactId, token);
+	}
+
+	private async Task SendMessage()
+	{
+		await ChatService.SendMessageAsync(contact.Id, token);
+	}
+
+    // protected override void OnParametersSet()
+    // {
+    //     // You can use the UserId parameter here
+    //     Console.WriteLine($"ContactId: {ContactId}");
+    // }
+}

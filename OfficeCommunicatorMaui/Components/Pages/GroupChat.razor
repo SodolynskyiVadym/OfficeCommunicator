@@ -1,0 +1,15 @@
+﻿@page "/group/{GroupId:int}"
+
+<h1>@GroupId</h1>
+
+@code {
+
+    [Parameter]
+    public int GroupId { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // You can use the UserId parameter here
+        Console.WriteLine($"GroupId: {GroupId}");
+    }
+}

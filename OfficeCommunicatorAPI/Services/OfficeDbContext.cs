@@ -25,13 +25,25 @@ public class OfficeDbContext : DbContext
             .HasIndex(u => u.UniqueName)
             .IsUnique();
 
-        modelBuilder.Entity<User>()
-            .HasMany(u => u.Groups)
-            .WithMany(g => g.Users);
         
         modelBuilder.Entity<Contact>()
             .HasIndex(c => new { c.UserId, c.AssociatedUserId })
             .IsUnique();
+
+        modelBuilder.Entity<Group>()
+            .HasIndex(g => g.UniqueIdentifier)
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
+                .HasMany(u => u.Groups)
+                .WithMany(g => g.Users);
+                //.UsingEntity<Dictionary<string, object>>(
+                //    "UserGroup",
+                //    j => j.HasOne<Group>().WithMany().HasForeignKey("GroupId"),
+                //    j => j.HasOne<User>().WithMany().HasForeignKey("UserId")
+                //);
+
+
 
         modelBuilder.Entity<User>()
             .HasMany(u => u.Contacts)
