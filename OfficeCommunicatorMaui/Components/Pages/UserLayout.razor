@@ -1,57 +1,12 @@
-﻿@inherits LayoutComponentBase
+﻿@* @inherits LayoutComponentBase *@
 @inject NavigationManager NavigationManager
 @inject AuthApiService AuthApiService
 
-@if (isAuth)
-{
-    <UserLayout OnLogout="Logout"></UserLayout>
-}
-else
-{
-    <LoginLayout OnLogin="Login"></LoginLayout>
-}
-
-
-@code{
-    private bool isAuth { get; set; }
-
-    protected async override Task OnInitializedAsync()
-    {
-        string? token = await TokenService.GetTokenAsync();
-        if (string.IsNullOrEmpty(token))
-        {
-            isAuth = false;
-            TokenService.RemoveToken();
-        }
-        else
-        {
-            isAuth = true;
-        }
-	}
-
-    public void Logout()
-    {
-        TokenService.RemoveToken();
-        isAuth = false;
-		StateHasChanged();
-    }
-
-    public async Task Login(string token)
-    {
-		await TokenService.SaveTokenAsync(token);
-		isAuth = true;
-		await InvokeAsync(StateHasChanged);
-    }
-}
-
-
-
-
-@* <header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
+<header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
     <div class="container-fluid">
         <div class="d-flex flex-wrap align-items-center justify-content-between">
             <a href="/" class="d-flex align-items-center text-white text-decoration-none">
-                <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+                <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap" /></svg>
             </a>
 
             <ul class="nav me-auto">
@@ -67,7 +22,7 @@ else
             </form>
 
             <div class="text-end">
-                <button type="button" class="btn btn-outline-light me-2" @onclick="Logout">Login</button>
+                <button type="button" class="btn btn-outline-light me-2" @onclick="OnLogout">Logout</button>
                 <button type="button" class="btn btn-warning">Sign-up</button>
             </div>
         </div>
@@ -76,52 +31,47 @@ else
 
 
 <div class="page">
-    @if (isAuth)
+    @if(user != null)
     {
         <div class="sidebar">
             <NavMenu Groups="user.Groups" Contacts="user.Contacts" OnGroupSelected="HandleGroupSelected" OnContactSelected="HandleContactSelected" />
         </div>
-
-        <main>
-            <article class="content px-4">
-                @if (isChatOpened)
-                {
-                    @if (isGroupOpened)
-                    {
-                        <GroupChat GroupId="selectedGroupId" />
-                    }
-                    @if (!isGroupOpened)
-                    {
-                        <ContactChat ContactId="selectedContactId" />
-                    }
-                }
-                @if (!isChatOpened)
-                {
-                    @Body
-                }
-            </article>
-        </main>
-
     }
 
-    @if (!isAuth)
-    {
-        <main>
-            <article class="content px-4">
+
+    <main>
+        <article class="content px-4">
+@*             @if (isChatOpened)
+            {
+                @if (isGroupOpened)
+                {
+                    <GroupChat GroupId="selectedGroupId" />
+                }
+                @if (!isGroupOpened)
+                {
+                    <ContactChat ContactId="selectedContactId" />
+                }
+            } *@
+@*             @if (!isChatOpened)
+            {
                 @Body
-            </article>
-        </main>
-    }
+            } *@
+        </article>
+    </main>
 </div>
 
-@code{
+@code {
+    [Parameter]
+    public EventCallback OnLogout { get; set; }
+
+
     private string? token { get; set; }
-    private bool isAuth { get; set; }
     private bool isChatOpened { get; set; }
     private bool isGroupOpened { get; set; }
 
     private int selectedGroupId { get; set; }
     private int selectedContactId { get; set; }
+    private readonly string serverUrl = "http://localhost:5207/chatHub";
 
     private User user { get; set; }
     private HubConnection hubConnection { get; set; }
@@ -131,22 +81,17 @@ else
         token = await TokenService.GetTokenAsync();
         if (string.IsNullOrEmpty(token))
         {
-            isAuth = false;
-            TokenService.RemoveToken();
-            NavigationManager.NavigateTo("/loginSignup", replace: true);
+            await OnLogout.InvokeAsync();
             return;
         }
 
         user = await AuthApiService.GetUser(token);
         if (user == null)
         {
-            isAuth = false;
-            TokenService.RemoveToken();
-            NavigationManager.NavigateTo("/loginSignup", replace: true);
+            await OnLogout.InvokeAsync();
+            return;
         }
 
-
-        string serverUrl = "http://localhost:5207/chatHub";
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(serverUrl, options =>
@@ -158,44 +103,32 @@ else
 
         if (hubConnection.State != HubConnectionState.Connected)
         {
-            isAuth = false;
-            TokenService.RemoveToken();
-            NavigationManager.NavigateTo("/loginSignup", replace: true);
+			await OnLogout.InvokeAsync();
+			return;
         }
 
         hubConnection.On<int, int, Message>("ReveiveMessage", (communicationId, chatId, message) =>
         {
             Console.Beep();
         });
-
-        isAuth = true;
     }
-
-
-	public void Logout()
-	{
-		TokenService.RemoveToken();
-		isAuth = false;
-		StateHasChanged();
-		NavigationManager.NavigateTo("/loginSignup", replace: true);
-	}
 
 
     private void HandleGroupSelected(Group group)
     {
         Console.Beep();
         selectedGroupId = group.Id;
-		isGroupOpened = true;
-		isChatOpened = true;
+        isGroupOpened = true;
+        isChatOpened = true;
         StateHasChanged();
     }
 
     private void HandleContactSelected(Contact contact)
     {
-		Console.Beep();
+        Console.Beep();
         selectedContactId = contact.Id;
-		isGroupOpened = false;
-		isChatOpened = true;
+        isGroupOpened = false;
+        isChatOpened = true;
         StateHasChanged();
     }
-} *@
+}

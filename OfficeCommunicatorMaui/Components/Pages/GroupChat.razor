@@ -1,15 +1,17 @@
-﻿@page "/group/{GroupId:int}"
+﻿<h1>@GroupId</h1>
 
-<h1>@GroupId</h1>
+<input type="text" @bind="Message" />
+<button @onclick="SendMessage">Send</button>
 
 @code {
 
     [Parameter]
     public int GroupId { get; set; }
 
-    protected override void OnParametersSet()
+    private string Message { get; set; }
+
+    public void SendMessage()
     {
-        // You can use the UserId parameter here
-        Console.WriteLine($"GroupId: {GroupId}");
+        
     }
 }

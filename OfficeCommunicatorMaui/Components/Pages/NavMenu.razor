@@ -1,0 +1,46 @@
+﻿@inject AuthApiService AuthApiService
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Office Communicator</a>
+    </div>
+</div>
+
+<div class="nav-scrollable w-30" onclick="document.querySelector('.navbar-toggler').click()">
+    <div class="container-lg">
+        <nav class="flex-column">
+
+            @foreach (var group in Groups)
+            {
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="#" @onclick="() => OnGroupSelected.InvokeAsync(group)">
+                        @group.Name
+                    </a>
+                </li>
+            }
+            @foreach (var contact in Contacts)
+            {
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="#" @onclick="() => OnContactSelected.InvokeAsync(contact)">
+                        @contact.AssociatedUser.Name
+                    </a>
+                </li>
+            }
+        </nav>
+    </div>
+</div>
+
+
+@code{
+    [Parameter]
+    public List<Group> Groups { get; set; } = new List<Group>();
+
+    [Parameter]
+    public List<Contact> Contacts { get; set; } = new List<Contact>();
+
+    [Parameter]
+    public EventCallback<Group> OnGroupSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<Contact> OnContactSelected { get; set; }
+}

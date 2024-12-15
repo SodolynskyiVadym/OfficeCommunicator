@@ -68,36 +68,36 @@ public class CommunicatorHub : Hub
     
 
     
-    public async Task SendMessage(int communicationId, string communication, string content)
+
+    public async Task SendMessage(int chatId, int communicationId, string content)
     {
         if(!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
 
-        string hubGroupName;
-        int chatId = 0;
-        if (communication == "group")
-        {
-            Group? group = await _groupRepository.GetGroupWithUsers(communicationId);
-            if (group == null) throw new ArgumentException("Group not found");
-            
-            bool isUserMember = group.Users.Any(u => u.Id == userId);
-            if (!isUserMember) throw new ArgumentException("User is not a member of the group");
-            
-            chatId = group.ChatId;
-            hubGroupName = GeneratorHubGroupName.GenerateGroupName(group);
-        }else if (communication == "contact")
-        {
-            Contact? contact = await _contactRepository.GetByIdAsync(communicationId);
-            if (contact == null) throw new ArgumentException("Contact not found");
-            
-            bool isUserContact = contact.UserId == userId || contact.AssociatedUserId == userId;
-            if (!isUserContact) throw new ArgumentException("User is not a contact");
-            
-            chatId = contact.ChatId;
-            hubGroupName = GeneratorHubGroupName.GenerateContactName(contact);
-        }else throw new ArgumentException("Invalid communication type");
-        
-        if(chatId == 0) throw new ArgumentException("Chat not found");
-        
+        //int chatId = 0;
+        //if (communication == "group")
+        //{
+        //    Group? group = await _groupRepository.GetGroupWithUsers(communicationId);
+        //    if (group == null) throw new ArgumentException("Group not found");
+
+        //    bool isUserMember = group.Users.Any(u => u.Id == userId);
+        //    if (!isUserMember) throw new ArgumentException("User is not a member of the group");
+
+        //    chatId = group.ChatId;
+        //    hubGroupName = GeneratorHubGroupName.GenerateGroupName(group);
+        //}else if (communication == "contact")
+        //{
+        //    Contact? contact = await _contactRepository.GetByIdAsync(communicationId);
+        //    if (contact == null) throw new ArgumentException("Contact not found");
+
+        //    bool isUserContact = contact.UserId == userId || contact.AssociatedUserId == userId;
+        //    if (!isUserContact) throw new ArgumentException("User is not a contact");
+
+        //    chatId = contact.ChatId;
+        //    hubGroupName = GeneratorHubGroupName.GenerateContactName(contact);
+        //}else throw new ArgumentException("Invalid communication type");
+
+        //if(chatId == 0) throw new ArgumentException("Chat not found");
+
         Message message = new Message
         {
             ChatId = chatId,
@@ -105,11 +105,12 @@ public class CommunicatorHub : Hub
             Content = content,
             Date = DateTime.Now
         };
-        bool result = await _messageRepository.AddAsync(message);
-        if (!result) throw new Exception("Message not sent");
+        string hubGroupName = await _messageRepository.AddAsyncWithCheck(message, communicationId);
+        if (!string.IsNullOrEmpty(hubGroupName)) throw new Exception("Message not sent");
         
-        await Clients.Group(hubGroupName).SendAsync("ReceiveMessage", communicationId, communication, message);
+        await Clients.Group(hubGroupName).SendAsync("ReceiveMessage", communicationId, chatId, message);
     }
+
 
 
     public async Task RemoveMessage(int communicationId, string communication, int messageId)
@@ -184,7 +185,7 @@ public class CommunicatorHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    private static class GeneratorHubGroupName
+    public static class GeneratorHubGroupName
     {
         public static string GenerateGroupName(Group group) => group.Id + "group";
         public static string GenerateContactName(Contact contact) => contact.ChatId + "contact";    

@@ -1,20 +1,23 @@
-﻿@page "/loginSignup"
-@inject AuthApiService AuthApiService
+﻿@inject AuthApiService AuthApiService
 @inject NavigationManager NavigationManager
 
 <input type="text" placeholder="Username" @bind="email"/>
 <input type="password" placeholder="Password" @bind="password"/>
 <p>@errorMessage</p>
 <p>@token</p>
-<button @onclick="LoginType">Login</button>
+<button @onclick="Login">Login</button>
+
 
 @code {
+    [Parameter]
+	public EventCallback<string> OnLogin { get; set; }
+
     private string email { get; set; } = string.Empty;
     private string password { get; set; } = string.Empty;
-    private string? token { get; set; } = string.Empty; 
+    private string? token { get; set; } = string.Empty;
     private string errorMessage { get; set; } = string.Empty;
 
-    private async Task LoginType()
+    private async Task Login()
     {
         try
         {
@@ -22,13 +25,13 @@
             if (!string.IsNullOrEmpty(token))
             {
                 await TokenService.SaveTokenAsync(token);
-				NavigationManager.NavigateTo("/", replace: true);
+				OnLogin.InvokeAsync(token);
             }
             else throw new Exception("Invalid login");
         }
         catch (Exception ex)
         {
-			errorMessage = ex.Message;
+            errorMessage = ex.Message;
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿@page "/contact/{ContactId:int}"
-@inject ContactApiService ContactApiService
+﻿@inject ContactApiService ContactApiService
 
 @if (contact != null)
 {
@@ -9,7 +8,7 @@
 		}
 
 		<input type="text" @bind="enteredMessage" />
-		<button @onclick="SendMessage">Send</button>
+		@* <button @onclick="SendMessage">Send</button> *@
 }
 else
 {
@@ -19,6 +18,7 @@ else
 @code {
     [Parameter]
     public int ContactId { get; set; }
+
 	private string token { get; set; } = string.Empty;
 	private string enteredMessage { get; set; } = string.Empty;
 	public Contact? contact { get; set; }
@@ -32,10 +32,10 @@ else
 		contact = await ContactApiService.GetContactAsync(ContactId, token);
 	}
 
-	private async Task SendMessage()
-	{
-		await ChatService.SendMessageAsync(contact.Id, token);
-	}
+	// private async Task SendMessage()
+	// {
+	// 	await ChatService.SendMessageAsync(contact.Id, token);
+	// }
 
     // protected override void OnParametersSet()
     // {

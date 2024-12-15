@@ -7,18 +7,10 @@
 Welcome to your new app.
 
 @code{
-	private string token { get; set; } = string.Empty;
+	private string? token { get; set; } = string.Empty;
 	private string errorMessage { get; set; } = string.Empty;
-	// protected override async Task OnInitializedAsync()
-	// {
-	// 	try
-	// 	{
-	// 		token = await TokenService.GetTokenAsync() ?? "";
-	// 		NavigationManager.NavigateTo("/chat", replace: true);
-	// 	}
-	// 	catch (Exception ex)
-	// 	{
-	// 		errorMessage = ex.Message;
-	// 	}
-	// }
+	protected override async Task OnInitializedAsync()
+	{
+		token = await TokenService.GetTokenAsync();
+	}
 }
