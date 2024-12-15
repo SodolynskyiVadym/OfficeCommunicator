@@ -10,7 +10,7 @@
 
 @code {
     [Parameter]
-	public EventCallback<string> OnLogin { get; set; }
+    public EventCallback<string> OnLogin { get; set; }
 
     private string email { get; set; } = string.Empty;
     private string password { get; set; } = string.Empty;
@@ -25,7 +25,7 @@
             if (!string.IsNullOrEmpty(token))
             {
                 await TokenService.SaveTokenAsync(token);
-				OnLogin.InvokeAsync(token);
+				await OnLogin.InvokeAsync(token);
             }
             else throw new Exception("Invalid login");
         }

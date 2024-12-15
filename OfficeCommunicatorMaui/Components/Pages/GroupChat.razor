@@ -1,17 +1,23 @@
-﻿<h1>@GroupId</h1>
+﻿
+<h1>@Group.Name</h1>
+
+@foreach (var message in Group.Chat.Messages)
+{
+    <div>@message.Content</div>
+}
+
+<h1>Messages @Group.Chat.Messages</h1>
 
 <input type="text" @bind="Message" />
-<button @onclick="SendMessage">Send</button>
+<button @onclick="() => OnSendMessage.InvokeAsync(new SendMessageModel(Group.ChatId, Message))">Send</button>
 
 @code {
 
     [Parameter]
-    public int GroupId { get; set; }
+    public Group Group { get; set; }
+
+    [Parameter]
+	public EventCallback<SendMessageModel> OnSendMessage { get; set; }
 
     private string Message { get; set; }
-
-    public void SendMessage()
-    {
-        
-    }
 }

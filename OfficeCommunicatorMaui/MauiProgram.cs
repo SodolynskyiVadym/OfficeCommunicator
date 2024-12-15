@@ -18,8 +18,8 @@ public static class MauiProgram
 
         HttpClient httpClient = new HttpClient();
         builder.Services.AddSingleton(sp => new AuthApiService(serverUrl, httpClient));
-        builder.Services.AddSingleton(sp => new GroupApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new ContactApiService(serverUrl, httpClient));
+        builder.Services.AddSingleton(sp => new ChatApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new SignalRService(serverUrl + "/chatHub"));
 
 

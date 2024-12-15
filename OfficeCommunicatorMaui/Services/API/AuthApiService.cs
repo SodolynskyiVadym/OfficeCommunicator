@@ -15,7 +15,7 @@ namespace OfficeCommunicatorMaui.Services.API
             _url = url + "/user";
         }
 
-        public async Task<User> GetUser(string token)
+        public async Task<User?> GetUserAsync(string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var response = await _httpClient.GetAsync(_url + "/get");
@@ -28,7 +28,7 @@ namespace OfficeCommunicatorMaui.Services.API
             else
             {
                 var error = response.ReasonPhrase;
-                throw new Exception($"Failed to get user: {error}");
+                return null;
             }
         }
 

@@ -1,8 +1,10 @@
 ﻿@* @inherits LayoutComponentBase *@
+@implements IAsyncDisposable
 @inject NavigationManager NavigationManager
 @inject AuthApiService AuthApiService
+@inject ChatApiService ChatApiService
 
-<header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
+@* <header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
     <div class="container-fluid">
         <div class="d-flex flex-wrap align-items-center justify-content-between">
             <a href="/" class="d-flex align-items-center text-white text-decoration-none">
@@ -27,7 +29,7 @@
             </div>
         </div>
     </div>
-</header>
+</header> *@
 
 
 <div class="page">
@@ -41,21 +43,17 @@
 
     <main>
         <article class="content px-4">
-@*             @if (isChatOpened)
+            @if (isChatOpened)
             {
                 @if (isGroupOpened)
                 {
-                    <GroupChat GroupId="selectedGroupId" />
+                    <GroupChat Group="selectedGroup" OnSendMessage="SendMessageGroup" />
                 }
                 @if (!isGroupOpened)
                 {
-                    <ContactChat ContactId="selectedContactId" />
+                    <ContactChat Contact="selectedContact" OnSendMessage="SendMessageContact" />
                 }
-            } *@
-@*             @if (!isChatOpened)
-            {
-                @Body
-            } *@
+            } 
         </article>
     </main>
 </div>
@@ -65,27 +63,30 @@
     public EventCallback OnLogout { get; set; }
 
 
-    private string? token { get; set; }
     private bool isChatOpened { get; set; }
     private bool isGroupOpened { get; set; }
 
     private int selectedGroupId { get; set; }
     private int selectedContactId { get; set; }
+
+    private Group? selectedGroup { get; set; }
+    private Contact? selectedContact { get; set; }
+
     private readonly string serverUrl = "http://localhost:5207/chatHub";
 
-    private User user { get; set; }
+    private User? user { get; set; }
     private HubConnection hubConnection { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        token = await TokenService.GetTokenAsync();
+        string? token = await TokenService.GetTokenAsync();
         if (string.IsNullOrEmpty(token))
         {
             await OnLogout.InvokeAsync();
             return;
         }
 
-        user = await AuthApiService.GetUser(token);
+        user = await AuthApiService.GetUserAsync(token);
         if (user == null)
         {
             await OnLogout.InvokeAsync();
@@ -103,8 +104,8 @@
 
         if (hubConnection.State != HubConnectionState.Connected)
         {
-			await OnLogout.InvokeAsync();
-			return;
+            await OnLogout.InvokeAsync();
+            return;
         }
 
         hubConnection.On<int, int, Message>("ReveiveMessage", (communicationId, chatId, message) =>
@@ -113,22 +114,75 @@
         });
     }
 
+    private async Task<Group?> GetGroup(int groupId)
+    {
+        string? token = await TokenService.GetTokenAsync();
+        if (string.IsNullOrEmpty(token)) return null;
+        else return await ChatApiService.GetGroupAsync(groupId, token);
+    }
 
-    private void HandleGroupSelected(Group group)
+    private async Task<Contact?> GetContact(int contactId)
+    {
+        string? token = await TokenService.GetTokenAsync();
+        if (string.IsNullOrEmpty(token)) return null;
+        else return await ChatApiService.GetContactAsync(contactId, token);
+    }
+
+
+
+    private async Task ExitUserPage()
+    {
+        TokenService.RemoveToken();
+        await hubConnection.DisposeAsync();
+        await OnLogout.InvokeAsync();
+    }
+
+
+    private async Task HandleGroupSelected(Group group)
     {
         Console.Beep();
         selectedGroupId = group.Id;
+        selectedGroup = await GetGroup(selectedGroupId);
+        if (selectedGroup == null)
+        {
+            await ExitUserPage();
+            return;
+        }
         isGroupOpened = true;
         isChatOpened = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
-    private void HandleContactSelected(Contact contact)
+    private async void HandleContactSelected(Contact contact)
     {
         Console.Beep();
         selectedContactId = contact.Id;
+		selectedContact = await GetContact(selectedContactId);
+		if (selectedContact == null)
+		{
+			await ExitUserPage();
+			return;
+		}
         isGroupOpened = false;
         isChatOpened = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SendMessageGroup(SendMessageModel sendMessageModel)
+    {
+        await hubConnection.SendAsync("SendMessageGroup", sendMessageModel.ChatId, sendMessageModel.Message);
+    }
+
+    private async Task SendMessageContact(SendMessageModel sendMessageModel)
+    {
+        await hubConnection.SendAsync("SendMessageContact", sendMessageModel.ChatId, sendMessageModel.Message);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }
