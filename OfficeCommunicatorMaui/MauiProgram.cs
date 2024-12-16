@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using OfficeCommunicatorMaui.Services;
 using OfficeCommunicatorMaui.Services.API;
+using OfficeCommunicatorMaui.Services.Repositories;
 namespace OfficeCommunicatorMaui;
 
 public static class MauiProgram
@@ -13,13 +14,21 @@ public static class MauiProgram
             .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
 
         string serverUrl = "http://localhost:5207";
+        string dbPath = Path.Combine(FileSystem.AppDataDirectory, "app_database.db");
 
         builder.Services.AddMauiBlazorWebView();
 
         HttpClient httpClient = new HttpClient();
+        SqliteDbContext dbContext = new SqliteDbContext(dbPath);
+
         builder.Services.AddSingleton(sp => new AuthApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new ContactApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new ChatApiService(serverUrl, httpClient));
+
+        builder.Services.AddSingleton(sp => dbContext);
+
+        builder.Services.AddSingleton(sp => new MessageRepository(dbContext));
+
         builder.Services.AddSingleton(sp => new SignalRService(serverUrl + "/chatHub"));
 
 
@@ -29,6 +38,15 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
 
-        return builder.Build();
+
+        MauiApp mauiApp = builder.Build();
+
+        using (var scope = mauiApp.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<SqliteDbContext>();
+            context.Database.EnsureCreated();
+        }
+
+        return mauiApp;
     }
 }

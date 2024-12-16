@@ -33,7 +33,7 @@ public class ChatController : ControllerBase
         bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
         if (!result) return BadRequest("Invalid user id");
 
-        Contact? contact = await _contactRepository.GetByUserIdAndAssociatedUserIdAsync(userId, associatedUserId);
+        Contact? contact = await _contactRepository.GetByUserIdAndAssociatedUserIdWithIncludesAsync(userId, associatedUserId);
         return Ok(contact);
     }
 

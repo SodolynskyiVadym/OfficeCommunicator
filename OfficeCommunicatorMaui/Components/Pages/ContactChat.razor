@@ -18,7 +18,7 @@
 	public int UserId { get; set; }
 
 	[Parameter]
-	public EventCallback<MessageSecretStorageModel> OnSendMessage { get; set; }
+	public EventCallback<MessegeStorageModel> OnSendMessage { get; set; }
 
 	private string Message { get; set; } = string.Empty;
 
@@ -36,7 +36,7 @@
 			ChatId = Contact.ChatId,
 			Date = DateTime.Now
 		});
-		await OnSendMessage.InvokeAsync(new MessageSecretStorageModel(UserId, Contact.ChatId, Message, nameof(Contact)));
+		await OnSendMessage.InvokeAsync(new MessegeStorageModel(UserId, Contact.ChatId, Message, nameof(Contact)));
 		Message = string.Empty;
 	}
 }

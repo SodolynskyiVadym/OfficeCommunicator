@@ -1,15 +1,16 @@
 ﻿
+
 <h1>@Group.Name</h1>
 
 @foreach (var message in Group.Chat.Messages)
 {
-    <div>@message.Content</div>
+	<div>@message.Content</div>
 }
 
-<h1>Messages @Group.Chat.Messages</h1>
 
 <input type="text" @bind="Message" />
 <button @onclick="SendMessage">Send</button>
+
 
 @code {
 
@@ -20,7 +21,7 @@
     public int UserId { get; set; }
 
     [Parameter]
-	public EventCallback<MessageSecretStorageModel> OnSendMessage { get; set; }
+	public EventCallback<MessegeStorageModel> OnSendMessage { get; set; }
 
     private string Message { get; set; }
 
@@ -38,7 +39,7 @@
 				ChatId = Group.ChatId,
 				Date = DateTime.Now
 			});
-		await OnSendMessage.InvokeAsync(new MessageSecretStorageModel(UserId, Group.ChatId, Message, nameof(Group)));
+		await OnSendMessage.InvokeAsync(new MessegeStorageModel(UserId, Group.ChatId, Message, nameof(Group)));
 		Message = string.Empty;
 	}
 }

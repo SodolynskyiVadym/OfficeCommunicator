@@ -41,7 +41,7 @@ public class CommunicatorHub : Hub
         foreach (var contact in user.Contacts) await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateContactName(contact.ChatId));
         _counter++;
         Console.WriteLine($"A client connected {DateTime.Now}. Total clients: {_counter}");
-        Console.WriteLine($"User was added to ${user.Groups.Count()} groups");
+        Console.WriteLine($"User was added to {user.Groups.Count()} groups");
         await base.OnConnectedAsync();
     }
 
@@ -116,7 +116,7 @@ public class CommunicatorHub : Hub
         
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateGroupName(message.ChatId)).SendAsync("ReceiveGroupMessage", message);
         MessageSignalRModel messageResult = _mapper.Map<MessageSignalRModel>(message);
-        messageResult.DictionaryIndex = messageIndex;
+        messageResult.SqliteIndex = messageIndex;
         return messageResult;
     }
 
@@ -137,7 +137,7 @@ public class CommunicatorHub : Hub
 
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateContactName(message.ChatId)).SendAsync("ReceiveContactMessage", message);
         MessageSignalRModel messageResult = _mapper.Map<MessageSignalRModel>(message);
-        messageResult.DictionaryIndex = messageIndex;
+        messageResult.SqliteIndex = messageIndex;
         return messageResult;
     }
 
