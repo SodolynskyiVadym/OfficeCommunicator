@@ -11,6 +11,6 @@ Welcome to your new app.
 	private string errorMessage { get; set; } = string.Empty;
 	protected override async Task OnInitializedAsync()
 	{
-		token = await TokenService.GetTokenAsync();
+		token = await SecureStorageService.GetTokenAsync();
 	}
 }

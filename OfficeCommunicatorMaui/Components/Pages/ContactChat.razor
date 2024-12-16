@@ -8,15 +8,35 @@
 }
 
 <input type="text" @bind="Message" />
-<button @onclick="() => OnSendMessage.InvokeAsync(new SendMessageModel(Contact.ChatId, Message))">Send</button>
-
+<button @onclick="SendMessage">Send</button>
 
 @code {
-    [Parameter]
-    public Contact Contact { get; set; }
+	[Parameter]
+	public Contact Contact { get; set; }
 
 	[Parameter]
-	public EventCallback<SendMessageModel> OnSendMessage { get; set; }
+	public int UserId { get; set; }
+
+	[Parameter]
+	public EventCallback<MessageSecretStorageModel> OnSendMessage { get; set; }
 
 	private string Message { get; set; } = string.Empty;
+
+	protected override void OnInitialized()
+	{
+		Contact.Chat.Messages = Contact.Chat.Messages.OrderByDescending(m => m.Date).ToList();
+	}
+
+	private async Task SendMessage()
+	{
+		Contact.Chat.Messages.Add(new Message()
+		{
+			Content = Message,
+			UserId = UserId,
+			ChatId = Contact.ChatId,
+			Date = DateTime.Now
+		});
+		await OnSendMessage.InvokeAsync(new MessageSecretStorageModel(UserId, Contact.ChatId, Message, nameof(Contact)));
+		Message = string.Empty;
+	}
 }

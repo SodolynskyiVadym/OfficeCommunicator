@@ -30,7 +30,6 @@ public class ChatController : ControllerBase
     [HttpGet("get-contact/{associateduserId}")]
     public async Task<IActionResult> GetContact(int associatedUserId)
     {
-        Console.WriteLine(associatedUserId);
         bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
         if (!result) return BadRequest("Invalid user id");
 

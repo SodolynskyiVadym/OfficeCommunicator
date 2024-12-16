@@ -72,7 +72,6 @@ namespace OfficeCommunicatorAPI.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(UserEmailPasswordDto userDto)
         {
-            Console.WriteLine("Login");
             User? user = await _userRepository.GetByEmailAsync(userDto);
             if (user == null) return BadRequest("User not found");
             

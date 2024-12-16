@@ -1,4 +1,6 @@
-﻿namespace OfficeCommunicatorAPI.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace OfficeCommunicatorAPI.Models;
 
 public class Group
 {
@@ -9,6 +11,8 @@ public class Group
     public int ChatId { get; set; }
     public Chat Chat { get; set; }
     public List<User> Admins { get; set; }
+
+    [JsonIgnore]
     public List<User> Users { get; set; }
 
     public Group CreatePresentGroupModel()

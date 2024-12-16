@@ -30,6 +30,8 @@ namespace OfficeCommunicatorAPI.Services
             CreateMap<Contact, ContactPresentDto>()
                 .ForMember(dest => dest.AssociatedUser, opt => opt.MapFrom(src => src.AssociatedUser));
 
+            CreateMap<Message, MessageSignalRModel>();
+
         }
     }
 }

@@ -3,6 +3,7 @@
     public class Group
     {
         public int Id { get; set; }
+        public int UnviewedMessages { get; set; }
         public string Name { get; set; }
         public string UniqueIdentifier { get; set; }
         public int ChatId { get; set; }

@@ -1,6 +1,8 @@
-﻿namespace OfficeCommunicatorMaui.Models
+﻿using OfficeCommunicatorAPI.Models;
+
+namespace OfficeCommunicatorAPI.DTO
 {
-    public class Message
+    public class MessageSignalRModel
     {
         public int Id { get; set; }
         public int DictionaryIndex { get; set; }
@@ -8,6 +10,5 @@
         public DateTime Date { get; set; }
         public int UserId { get; set; }
         public int ChatId { get; set; }
-        public User User { get; set; }
     }
 }

@@ -17,11 +17,11 @@ else
 
     protected async override Task OnInitializedAsync()
     {
-        string? token = await TokenService.GetTokenAsync();
+        string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token))
         {
             isAuth = false;
-            TokenService.RemoveToken();
+            SecureStorageService.RemoveToken();
         }
         else
         {
@@ -31,14 +31,14 @@ else
 
     public void Logout()
     {
-        TokenService.RemoveToken();
+        SecureStorageService.RemoveToken();
         isAuth = false;
 		StateHasChanged();
     }
 
     public async Task Login(string token)
     {
-		await TokenService.SaveTokenAsync(token);
+		await SecureStorageService.SaveTokenAsync(token);
 		isAuth = true;
 		await InvokeAsync(StateHasChanged);
     }

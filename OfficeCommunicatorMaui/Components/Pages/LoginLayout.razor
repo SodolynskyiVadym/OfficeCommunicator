@@ -24,7 +24,7 @@
             token = await AuthApiService.LoginAsync(email, password);
             if (!string.IsNullOrEmpty(token))
             {
-                await TokenService.SaveTokenAsync(token);
+                await SecureStorageService.SaveTokenAsync(token);
 				await OnLogin.InvokeAsync(token);
             }
             else throw new Exception("Invalid login");

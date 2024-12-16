@@ -9,6 +9,7 @@ namespace OfficeCommunicatorMaui.Models
     public class Contact
     {
         public int Id { get; set; }
+        public int UnviewedMessages { get; set; }
         public int ChatId { get; set; }
         public Chat Chat { get; set; }
         public int UserId { get; set; }

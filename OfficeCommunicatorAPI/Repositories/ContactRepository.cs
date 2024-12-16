@@ -31,14 +31,18 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         return await _dbContext.Contacts.FindAsync(id);
     }
 
-    public async Task<Contact?> GetByUserIdAndAssociatedUserIdAsync(int userId, int associatedUserId)
+    public async Task<Contact?> GetByUserIdAndAssociatedUserIdWithIncludesAsync(int userId, int associatedUserId)
     {
-        Console.WriteLine(userId);
-        Console.WriteLine(associatedUserId);
         return await _dbContext.Contacts
             .Include(c => c.Chat)
             .ThenInclude(c => c.Messages)
             .Include(c => c.AssociatedUser)
+            .FirstOrDefaultAsync(c => c.UserId == userId && c.AssociatedUserId == associatedUserId);
+    }
+
+    public async Task<Contact?> GetByUserIdAndAssociatedUserIdAsync(int userId, int associatedUserId)
+    {
+        return await _dbContext.Contacts
             .FirstOrDefaultAsync(c => c.UserId == userId && c.AssociatedUserId == associatedUserId);
     }
 
@@ -49,12 +53,14 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
 
     public async Task<Contact> AddAsync(ContactDto contactDto)
     {
+        if(contactDto.AssociatedUserId == contactDto.UserId) throw new Exception("Cannot add yourself as a contact");
+
         User? associatedUser = await _dbContext.Users.FindAsync(contactDto.AssociatedUserId);
         if (associatedUser == null) throw new Exception("Associated user not found");
-        
+
         User? user = await _dbContext.Users.FindAsync(contactDto.UserId);
         if (user == null) throw new Exception("User not found");
-        
+
         Chat chat = new Chat();
         await _dbContext.Chats.AddAsync(chat);
         await _dbContext.SaveChangesAsync();
@@ -75,6 +81,43 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         await _dbContext.SaveChangesAsync();
 
         return contact;
+    }
+
+
+    public async Task<Contact[]?> AddContactAsync(int userId, int associatedUserId)
+    {
+        if (associatedUserId == userId) return null;
+
+        User? associatedUser = await _dbContext.Users.FindAsync(associatedUserId);
+        if (associatedUser == null) return null;
+
+        User? user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        Chat chat = new Chat();
+        await _dbContext.Chats.AddAsync(chat);
+        await _dbContext.SaveChangesAsync();
+
+        Contact contact = new Contact()
+        {
+            UserId = userId,
+            AssociatedUserId = associatedUserId,
+            ChatId = chat.Id
+        };
+
+        await _dbContext.Contacts.AddAsync(contact);
+
+        Contact associatedContact = new Contact
+        {
+            UserId = contact.AssociatedUserId,
+            AssociatedUserId = contact.UserId,
+            ChatId = contact.ChatId
+        };
+
+        await _dbContext.Contacts.AddAsync(associatedContact);
+        await _dbContext.SaveChangesAsync();
+
+        return [contact, associatedContact];
     }
 
     public Task<bool> UpdateAsync(ContactUpdateDto entity)

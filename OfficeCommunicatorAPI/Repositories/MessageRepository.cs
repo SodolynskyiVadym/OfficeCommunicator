@@ -26,7 +26,7 @@ public class MessageRepository
     public async Task<bool> AddMessageGroupAsync(Message message)
     {
         Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.ChatId == message.ChatId);
-        if(group == null || !group.Users.Any(u => u.Id == message.UserId)) return false;
+        if (group == null || !group.Users.Any(u => u.Id == message.UserId)) return false;
 
         await _dbContext.AddAsync(message);
         return await _dbContext.SaveChangesAsync() > 0;

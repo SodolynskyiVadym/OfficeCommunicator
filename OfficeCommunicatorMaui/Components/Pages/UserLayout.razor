@@ -1,10 +1,10 @@
-﻿@* @inherits LayoutComponentBase *@
+﻿@using System.Collections.Concurrent
 @implements IAsyncDisposable
 @inject NavigationManager NavigationManager
 @inject AuthApiService AuthApiService
 @inject ChatApiService ChatApiService
 
-@* <header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
+<header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
     <div class="container-fluid">
         <div class="d-flex flex-wrap align-items-center justify-content-between">
             <a href="/" class="d-flex align-items-center text-white text-decoration-none">
@@ -29,7 +29,7 @@
             </div>
         </div>
     </div>
-</header> *@
+</header>
 
 
 <div class="page">
@@ -38,30 +38,31 @@
         <div class="sidebar">
             <NavMenu Groups="user.Groups" Contacts="user.Contacts" OnGroupSelected="HandleGroupSelected" OnContactSelected="HandleContactSelected" />
         </div>
+
+        <main>
+            <article class="content px-4">
+                @if (isChatOpened)
+                {
+                    @if (isGroupOpened)
+                    {
+                        <GroupChat Group="selectedGroup" OnSendMessage="SendMessageGroup" UserId="user.Id" />
+                    }
+                    @if (!isGroupOpened)
+                    {
+                        <ContactChat Contact="selectedContact" OnSendMessage="SendMessageContact" UserId="user.Id" />
+                    }
+                }
+            </article>
+        </main>
     }
-
-
-    <main>
-        <article class="content px-4">
-            @if (isChatOpened)
-            {
-                @if (isGroupOpened)
-                {
-                    <GroupChat Group="selectedGroup" OnSendMessage="SendMessageGroup" />
-                }
-                @if (!isGroupOpened)
-                {
-                    <ContactChat Contact="selectedContact" OnSendMessage="SendMessageContact" />
-                }
-            } 
-        </article>
-    </main>
 </div>
 
 @code {
     [Parameter]
     public EventCallback OnLogout { get; set; }
 
+    private ConcurrentDictionary<int, MessageSecretStorageModel> unsavedMessages { get; set; } = new ConcurrentDictionary<int, MessageSecretStorageModel>();
+    private int unsavedMessagesCount { get; set; }
 
     private bool isChatOpened { get; set; }
     private bool isGroupOpened { get; set; }
@@ -79,7 +80,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        string? token = await TokenService.GetTokenAsync();
+        string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token))
         {
             await OnLogout.InvokeAsync();
@@ -108,22 +109,80 @@
             return;
         }
 
-        hubConnection.On<int, int, Message>("ReveiveMessage", (communicationId, chatId, message) =>
+
+
+
+        unsavedMessages = await SecureStorageService.GetMessagesAsync();
+        foreach (var message in unsavedMessages.Values)
+        {
+            if (message.Communication == nameof(Group)) await SendMessageGroup(message);
+            else if (message.Communication == nameof(Contact)) await SendMessageContact(message);
+        };
+        unsavedMessagesCount = await SecureStorageService.GetCounterAsync();
+
+
+
+
+
+
+        hubConnection.On<Message>("ReceiveGroupMessage", async (message) =>
         {
             Console.Beep();
+            if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
+            {
+                selectedGroup.Chat.Messages.Add(message);
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+
+
+        hubConnection.On<Message>("ReceiveContactMessage", async (message) =>
+        {
+            Console.Beep();
+            if(selectedContact != null && selectedContact.ChatId == message.ChatId)
+            {
+                selectedContact.Chat.Messages.Add(message);
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+
+
+        hubConnection.On<Message>("RemoveMessage", async (message) =>
+        {
+            if(selectedContact != null && selectedContact.ChatId == message.Id)
+            {
+                selectedContact.Chat.Messages.Remove(message);
+                await InvokeAsync(StateHasChanged);
+            }
+            else if (selectedGroup != null && selectedGroup.ChatId == message.Id)
+            {
+                selectedGroup.Chat.Messages.Remove(message);
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+
+
+        hubConnection.On<Contact>("ReceiveContact", async (contact) =>
+        {
+            Console.Beep();
+            await hubConnection.SendAsync("SubscribeContact", contact.Id);
+            user.Contacts.Add(contact);
+            await InvokeAsync(StateHasChanged);
         });
     }
 
+
     private async Task<Group?> GetGroup(int groupId)
     {
-        string? token = await TokenService.GetTokenAsync();
+        string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token)) return null;
         else return await ChatApiService.GetGroupAsync(groupId, token);
     }
 
+
     private async Task<Contact?> GetContact(int contactId)
     {
-        string? token = await TokenService.GetTokenAsync();
+        string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token)) return null;
         else return await ChatApiService.GetContactAsync(contactId, token);
     }
@@ -132,7 +191,7 @@
 
     private async Task ExitUserPage()
     {
-        TokenService.RemoveToken();
+        SecureStorageService.RemoveToken();
         await hubConnection.DisposeAsync();
         await OnLogout.InvokeAsync();
     }
@@ -142,6 +201,8 @@
     {
         Console.Beep();
         selectedGroupId = group.Id;
+        selectedContactId = 0;
+        selectedContact = null;
         selectedGroup = await GetGroup(selectedGroupId);
         if (selectedGroup == null)
         {
@@ -153,36 +214,98 @@
         await InvokeAsync(StateHasChanged);
     }
 
+
     private async void HandleContactSelected(Contact contact)
     {
         Console.Beep();
         selectedContactId = contact.Id;
-		selectedContact = await GetContact(selectedContactId);
-		if (selectedContact == null)
-		{
-			await ExitUserPage();
-			return;
-		}
+        selectedGroupId = 0;
+        selectedGroup = null;
+        selectedContact = await GetContact(selectedContactId);
+        if (selectedContact == null)
+        {
+            await ExitUserPage();
+            return;
+        }
         isGroupOpened = false;
         isChatOpened = true;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SendMessageGroup(SendMessageModel sendMessageModel)
+
+    private async Task SendMessageGroup(MessageSecretStorageModel messageSecretStorageModel)
     {
-        await hubConnection.SendAsync("SendMessageGroup", sendMessageModel.ChatId, sendMessageModel.Message);
+        Message message;
+        if (messageSecretStorageModel.DictionaryIndex > 0) message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.DictionaryIndex, messageSecretStorageModel.Content);
+        else
+        {
+            int counter = unsavedMessagesCount;
+            unsavedMessagesCount++;
+            messageSecretStorageModel.DictionaryIndex = counter;
+            unsavedMessages.TryAdd(counter, messageSecretStorageModel);
+            message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, counter, messageSecretStorageModel.Content);
+        }
+
+
+        unsavedMessages.TryRemove(message.DictionaryIndex, out _);
+
+        if(selectedGroup != null && selectedGroup.ChatId == message.ChatId)
+        {
+            Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+            if (updatedMessage != null)
+            {
+                updatedMessage.Id = message.Id;
+                updatedMessage.Date = message.Date;
+                updatedMessage.Content = message.Content;
+            }
+            else
+            {
+                selectedGroup.Chat.Messages.Add(message);
+            }
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
-    private async Task SendMessageContact(SendMessageModel sendMessageModel)
+
+    private async Task SendMessageContact(MessageSecretStorageModel messageSecretStorageModel)
     {
-        await hubConnection.SendAsync("SendMessageContact", sendMessageModel.ChatId, sendMessageModel.Message);
+        Message message;
+        if (messageSecretStorageModel.DictionaryIndex > 0) message = await hubConnection.InvokeAsync<Message>("SendMessageContact", messageSecretStorageModel.ChatId, messageSecretStorageModel.DictionaryIndex, messageSecretStorageModel.Content);
+        else
+        {
+			int counter = unsavedMessagesCount;
+            unsavedMessagesCount++;
+			messageSecretStorageModel.DictionaryIndex = counter;
+            unsavedMessages.TryAdd(unsavedMessagesCount, messageSecretStorageModel);
+            message = await hubConnection.InvokeAsync<Message>("SendMessageContact", messageSecretStorageModel.ChatId, counter, messageSecretStorageModel.Content);
+        }
+
+
+        unsavedMessages.TryRemove(message.DictionaryIndex, out _);
+
+        if (selectedContact != null && selectedContact.ChatId == message.ChatId)
+        {
+            Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+            if (updatedMessage != null)
+            {
+                updatedMessage.Id = message.Id;
+                updatedMessage.Date = message.Date;
+                updatedMessage.Content = message.Content;
+            }
+            else
+            {
+                selectedContact.Chat.Messages.Add(message);
+            }
+            await InvokeAsync(StateHasChanged);
+        }
     }
+
 
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection is not null)
-        {
-            await hubConnection.DisposeAsync();
-        }
+        if (unsavedMessages.Count > 0) await SecureStorageService.SaveMessagesAsync(unsavedMessages, unsavedMessagesCount);
+		else await SecureStorageService.SaveMessagesAsync(new ConcurrentDictionary<int, MessageSecretStorageModel>(), 0);
+
+        if (hubConnection is not null) await hubConnection.DisposeAsync();
     }
 }

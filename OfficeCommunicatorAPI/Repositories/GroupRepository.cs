@@ -100,4 +100,19 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         
         return group.Admins.Any(a => a.Id == userId);
     }
+
+
+    public async Task<bool> AddUserToGroupAsync(int groupId, int userId)
+    {
+        Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
+        if (group == null) return false;
+
+        User? user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return false;
+        if(group.Users.Any(u => u.Id == userId)) return false;
+
+        group.Users.Add(user);
+
+        return await _dbContext.SaveChangesAsync() > 0;
+    }
 }

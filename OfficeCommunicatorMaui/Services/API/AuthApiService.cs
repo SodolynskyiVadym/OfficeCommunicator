@@ -18,16 +18,23 @@ namespace OfficeCommunicatorMaui.Services.API
         public async Task<User?> GetUserAsync(string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync(_url + "/get");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                User? result = await response.Content.ReadFromJsonAsync<User>();
-                if(result == null) throw new Exception("User not found");
-                return result;
+                var response = await _httpClient.GetAsync(_url + "/get");
+                if (response.IsSuccessStatusCode)
+                {
+                    User? result = await response.Content.ReadFromJsonAsync<User>();
+                    if (result == null) throw new Exception("User not found");
+                    return result;
+                }
+                else
+                {
+                    var error = response.ReasonPhrase;
+                    return null;
+                }
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
                 return null;
             }
         }

@@ -9,7 +9,7 @@
 <h1>Messages @Group.Chat.Messages</h1>
 
 <input type="text" @bind="Message" />
-<button @onclick="() => OnSendMessage.InvokeAsync(new SendMessageModel(Group.ChatId, Message))">Send</button>
+<button @onclick="SendMessage">Send</button>
 
 @code {
 
@@ -17,7 +17,28 @@
     public Group Group { get; set; }
 
     [Parameter]
-	public EventCallback<SendMessageModel> OnSendMessage { get; set; }
+    public int UserId { get; set; }
+
+    [Parameter]
+	public EventCallback<MessageSecretStorageModel> OnSendMessage { get; set; }
 
     private string Message { get; set; }
+
+	protected override void OnInitialized()
+	{
+		Group.Chat.Messages = Group.Chat.Messages.OrderByDescending(m => m.Date).ToList();
+	}
+
+	private async Task SendMessage()
+	{
+		Group.Chat.Messages.Add(new Message()
+			{
+				Content = Message,
+				UserId = UserId,
+				ChatId = Group.ChatId,
+				Date = DateTime.Now
+			});
+		await OnSendMessage.InvokeAsync(new MessageSecretStorageModel(UserId, Group.ChatId, Message, nameof(Group)));
+		Message = string.Empty;
+	}
 }

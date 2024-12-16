@@ -11,10 +11,10 @@ namespace OfficeCommunicatorMaui.Models
         public SendMessageModel(int chatId, string message)
         {
             ChatId = chatId;
-            Message = message;
+            Content = message;
         }
 
         public int ChatId { get; set; }
-        public string Message { get; set; }
+        public string Content { get; set; }
     }
 }
