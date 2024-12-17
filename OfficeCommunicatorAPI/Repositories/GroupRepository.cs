@@ -38,6 +38,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
             .Include(g => g.Users)
             .Include(g => g.Chat)
             .ThenInclude(c => c.Messages)
+            .ThenInclude(m => m.Documents)
             .FirstOrDefaultAsync(g => g.Id == groupId && g.Users.FirstOrDefault(u => u.Id == userId) != null);
     }
     

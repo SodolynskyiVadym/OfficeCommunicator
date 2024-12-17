@@ -36,6 +36,7 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         return await _dbContext.Contacts
             .Include(c => c.Chat)
             .ThenInclude(c => c.Messages)
+            .ThenInclude(m => m.Documents)
             .Include(c => c.AssociatedUser)
             .FirstOrDefaultAsync(c => c.UserId == userId && c.AssociatedUserId == associatedUserId);
     }
@@ -136,7 +137,7 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
     }
     
     
-    public async Task<bool> IsUserContact(int userId, int chatId)
+    public async Task<bool> IsUserContact(int chatId, int userId)
     {
         Contact? contact = await _dbContext.Contacts.FirstOrDefaultAsync(c => c.ChatId == chatId);
         if(contact == null || (contact.UserId != userId && contact.AssociatedUserId != userId)) return false;

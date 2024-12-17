@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using OfficeCommunicatorMaui.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using OfficeCommunicatorMaui.DTO;
 
 namespace OfficeCommunicatorMaui.Services
 {
@@ -12,7 +7,7 @@ namespace OfficeCommunicatorMaui.Services
     {
         private readonly string _dbPath;
         
-        public DbSet<MessegeStorageModel> Messages { get; set; }
+        public DbSet<MessageStorageDto> Messages { get; set; }
 
 
         public SqliteDbContext(string dbPath)

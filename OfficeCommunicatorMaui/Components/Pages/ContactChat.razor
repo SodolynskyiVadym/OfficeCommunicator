@@ -1,14 +1,21 @@
 ﻿@inject ContactApiService ContactApiService
+@inject ChatApiService ChatApiService
 
 <h1>@Contact.AssociatedUser.Name</h1>
 
 @foreach(var message in Contact.Chat.Messages)
 {
 	<h4>@message.Content</h4>
+	@foreach (var file in message.Documents)
+	{
+		<h3>@file.Name</h3>
+	}
 }
 
 <input type="text" @bind="Message" />
 <button @onclick="SendMessage">Send</button>
+
+<InputFile OnChange="HandleFileSelection" multiple />
 
 @code {
 	[Parameter]
@@ -18,13 +25,15 @@
 	public int UserId { get; set; }
 
 	[Parameter]
-	public EventCallback<MessegeStorageModel> OnSendMessage { get; set; }
+	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
 
 	private string Message { get; set; } = string.Empty;
 
-	protected override void OnInitialized()
+	private List<IBrowserFile> SelectedFiles { get; set; } = new();
+
+	protected override async Task OnInitializedAsync()
 	{
-		Contact.Chat.Messages = Contact.Chat.Messages.OrderByDescending(m => m.Date).ToList();
+		Contact.Chat.Messages = Contact.Chat.Messages.OrderBy(m => m.Date).ToList();
 	}
 
 	private async Task SendMessage()
@@ -36,7 +45,13 @@
 			ChatId = Contact.ChatId,
 			Date = DateTime.Now
 		});
-		await OnSendMessage.InvokeAsync(new MessegeStorageModel(UserId, Contact.ChatId, Message, nameof(Contact)));
+
+		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, Contact.ChatId, Message, SelectedFiles));
 		Message = string.Empty;
+	}
+
+	private void HandleFileSelection(InputFileChangeEventArgs e)
+	{
+		SelectedFiles = e.GetMultipleFiles().ToList();
 	}
 }

@@ -1,20 +1,23 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+using OfficeCommunicatorAPI.DTO;
 using OfficeCommunicatorAPI.Models;
 using OfficeCommunicatorAPI.Services;
-using static OfficeCommunicatorAPI.Services.CommunicatorHub;
 
 namespace OfficeCommunicatorAPI.Repositories;
 
 public class MessageRepository
 {
     private OfficeDbContext _dbContext;
+    private readonly GroupRepository _groupRepository;
+    private readonly ContactRepository _contactRepository;
     public IMapper _mapper;
     
     public MessageRepository(OfficeDbContext dbContext, IMapper mapper)
     {
         _dbContext = dbContext;
         _mapper = mapper;
+        _groupRepository = new GroupRepository(dbContext, mapper);
+        _contactRepository = new ContactRepository(dbContext, mapper);
     }
     
     
@@ -23,33 +26,33 @@ public class MessageRepository
         return await _dbContext.Messages.FindAsync(id);
     }
 
-    // public async Task<bool> AddMessageGroupAsync(Message message)
-    // {
-    //     Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.ChatId == message.ChatId);
-    //     if (group == null || !group.Users.Any(u => u.Id == message.UserId)) return false;
-    //
-    //     await _dbContext.AddAsync(message);
-    //     return await _dbContext.SaveChangesAsync() > 0;
-    // }
-    //
-    // public async Task<bool> AddMessageContactAsync(Message message)
-    // {
-    //     Contact? contact = await _dbContext.Contacts.FirstOrDefaultAsync(c => c.ChatId == message.ChatId);
-    //     if(contact == null || (contact.UserId != message.UserId && contact.AssociatedUserId != message.UserId)) return false;
-    //
-    //     await _dbContext.AddAsync(message);
-    //     return await _dbContext.SaveChangesAsync() > 0;
-    // }
-    
-    
-    public async Task<bool> AddMessageAsync(Message message, Func<Task<bool>> condition)
+    public Task<Message?> GetByIdWithIncludeAsync(int id)
     {
-        if (!await condition()) return false;
-        await _dbContext.AddAsync(message);
-        return await _dbContext.SaveChangesAsync() > 0;
+        throw new NotImplementedException();
     }
 
-    
+    public Task<List<Message>> GetAllAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<Message?> AddAsync(MessageDto messageDto)
+    {
+        bool result = (await _groupRepository.IsUserGroup(messageDto.ChatId, messageDto.UserId)) || (await _contactRepository.IsUserContact(messageDto.ChatId, messageDto.UserId));
+        if (!result) return null;
+
+        Message message = _mapper.Map<Message>(messageDto);
+        await _dbContext.AddAsync(message);
+        await _dbContext.SaveChangesAsync();
+        return message;
+    }
+
+    public Task<bool> UpdateAsync(MessageUpdateDto entity)
+    {
+        throw new NotImplementedException();
+    }
+
+
     public async Task<bool> RemoveAsync(int messageId, int userId)
     {
         Message? message = await _dbContext.Messages.FindAsync(messageId);
@@ -59,5 +62,11 @@ public class MessageRepository
         
         _dbContext.Messages.Remove(message);
         return await _dbContext.SaveChangesAsync() > 0;
+    }
+
+
+    public Task<bool> DeleteAsync(int id)
+    {
+        throw new NotImplementedException();
     }
 }

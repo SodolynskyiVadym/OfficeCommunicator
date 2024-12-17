@@ -7,5 +7,6 @@ public class Message
     public DateTime Date { get; set; }
     public int UserId { get; set; }
     public int ChatId { get; set; }
+    public List<Document> Documents { get; set; }
     public User User { get; set; }
 }

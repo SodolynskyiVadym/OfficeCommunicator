@@ -29,7 +29,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton(sp => new MessageRepository(dbContext));
 
-        builder.Services.AddSingleton(sp => new SignalRService(serverUrl + "/chatHub"));
+        //builder.Services.AddSingleton(sp => new SignalRService(serverUrl + "/chatHub"));
 
 
 

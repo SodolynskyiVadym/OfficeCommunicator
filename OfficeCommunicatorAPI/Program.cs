@@ -1,4 +1,5 @@
 using System.Text;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,34 +10,44 @@ var builder = WebApplication.CreateBuilder(args);
 string connectionString;
 string jwtKey;
 string passwordKey;
+string azuriteBlobStorageConnectionString;
 
 if (builder.Environment.IsDevelopment())
 {
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentException();
+    azuriteBlobStorageConnectionString = builder.Configuration.GetSection("Azurite:BlobStorage").Value ?? throw new ArgumentException();
     jwtKey = builder.Configuration.GetSection("AuthSetting:TokenKey").Value ?? throw new ArgumentException();
     passwordKey = builder.Configuration.GetSection("AuthSetting:passwordKey").Value ?? throw new ArgumentException();
 }
 else if (builder.Environment.IsEnvironment("DockerEnv"))
 {
     connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING") ?? throw new ArgumentException();
+    azuriteBlobStorageConnectionString = Environment.GetEnvironmentVariable("AZURITE_BLOB_STORAGE") ?? throw new ArgumentException();
     jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new ArgumentException();
     passwordKey = Environment.GetEnvironmentVariable("PASSWORD_KEY") ?? throw new ArgumentException();
 }
 else if(builder.Environment.IsEnvironment("AzureEnv"))
 {
     connectionString = Environment.GetEnvironmentVariable("AzureConnection") ?? throw new ArgumentException();
+    azuriteBlobStorageConnectionString = Environment.GetEnvironmentVariable("AZURITE_BLOB_STORAGE") ?? throw new ArgumentException();
     jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new ArgumentException();
     passwordKey = Environment.GetEnvironmentVariable("PASSWORD_KEY") ?? throw new ArgumentException();
 }
 else
 {
     connectionString = builder.Configuration.GetConnectionString("ConnectionStrings:ProductionConnection") ?? throw new ArgumentException();
+    azuriteBlobStorageConnectionString = builder.Configuration.GetSection("Azurite:BlobStorage").Value ?? throw new ArgumentException();
     jwtKey = builder.Configuration.GetSection("AuthSetting:TokenKey").Value ?? throw new ArgumentException();
     passwordKey = builder.Configuration.GetSection("AuthSetting:PasswordKey").Value ?? throw new ArgumentException();
 }
 
+
+var blobServiceClient = new BlobServiceClient(azuriteBlobStorageConnectionString);
+var containerClient = blobServiceClient.GetBlobContainerClient("office-communicator");
+await containerClient.CreateIfNotExistsAsync();
+
+
 builder.Services.AddControllers().AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
-//builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -48,6 +59,8 @@ builder.Services.AddDbContext<OfficeDbContext>(options =>
 builder.Services.AddSingleton(sp => new DapperDbContext(connectionString));
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+
+builder.Services.AddSingleton(sp => new BlobStorageService(containerClient));
 
 builder.Services.AddSingleton(sp => new AuthHelper(jwtKey, passwordKey));
 

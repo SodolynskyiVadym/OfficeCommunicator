@@ -1,5 +1,4 @@
-﻿@using System.Collections.Concurrent
-@implements IAsyncDisposable
+﻿@implements IAsyncDisposable
 @inject NavigationManager NavigationManager
 @inject AuthApiService AuthApiService
 @inject ChatApiService ChatApiService
@@ -46,11 +45,11 @@
                 {
                     @if (isGroupOpened)
                     {
-                        <GroupChat Group="selectedGroup" OnSendMessage="SendMessageGroup" UserId="user.Id" />
+                        <GroupChat Group="selectedGroup" OnSendMessage="SendMessage" UserId="user.Id" />
                     }
                     @if (!isGroupOpened)
                     {
-                        <ContactChat Contact="selectedContact" OnSendMessage="SendMessageContact" UserId="user.Id" />
+                        <ContactChat Contact="selectedContact" OnSendMessage="SendMessage" UserId="user.Id" />
                     }
                 }
             </article>
@@ -70,15 +69,16 @@
 
     private Group? selectedGroup { get; set; }
     private Contact? selectedContact { get; set; }
-     
+
     private readonly string serverUrl = "http://localhost:5207/chatHub";
+	private string token { get; set; } = string.Empty;
 
     private User? user { get; set; }
     private HubConnection hubConnection { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        string? token = await SecureStorageService.GetTokenAsync();
+        token = await SecureStorageService.GetTokenAsync() ?? string.Empty;
         if (string.IsNullOrEmpty(token))
         {
             await OnLogout.InvokeAsync();
@@ -109,16 +109,16 @@
 
 
 
-		var unsavedMessages = await MessageRepository.GetUnsentMessagesAsync();
+        var unsavedMessages = await MessageRepository.GetUnsentMessagesAsync();
         foreach (var message in unsavedMessages)
         {
-            if (message.Communication == nameof(Group) && message.UserId == user.Id) await SendMessageGroup(message);
-            else if (message.Communication == nameof(Contact) && message.UserId == user.Id) await SendMessageContact(message);
+			await MessageRepository.RemoveMessage(message.Id);
+            // if (message.UserId == user.Id) await SendMessage(message);
         };
 
 
 
-        hubConnection.On<Message>("ReceiveGroupMessage", async (message) =>
+        hubConnection.On<Message>("ReceiveMessage", async (message) =>
         {
             Console.Beep();
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
@@ -129,7 +129,7 @@
         });
 
 
-        hubConnection.On<Message>("ReceiveContactMessage", async (message) =>
+        hubConnection.On<Message>("ReceiveMessage", async (message) =>
         {
             Console.Beep();
             if(selectedContact != null && selectedContact.ChatId == message.ChatId)
@@ -225,18 +225,21 @@
     }
 
 
-
-
-    private async Task SendMessageGroup(MessegeStorageModel messageSecretStorageModel)
+    private async Task SendMessage(MessageStorageDto messageStorageDto)
     {
-        if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
-        if (hubConnection.State == HubConnectionState.Connected)
+
+        if (messageStorageDto.Id == 0) messageStorageDto = await MessageRepository.AddMessage(messageStorageDto);
+
+        Message? message = await ChatApiService.WriteMessageAsync(messageStorageDto, messageStorageDto.Files, token);
+        await MessageRepository.RemoveMessage(messageStorageDto.Id);
+
+
+
+        if (hubConnection.State == HubConnectionState.Connected && message != null)
         {
-            Message? message = await hubConnection.InvokeAsync<Message?>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
+            await hubConnection.SendAsync("SendMessage", message);
 
-            await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
-
-            if (message != null && selectedGroup != null && selectedGroup.ChatId == message.ChatId)
+            if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
                 Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
                 if (updatedMessage != null)
@@ -250,41 +253,85 @@
                     selectedGroup.Chat.Messages.Add(message);
                 }
                 await InvokeAsync(StateHasChanged);
-            }
+			}
+			else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
+			{
+				Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+				if (updatedMessage != null)
+				{
+					updatedMessage.Id = message.Id;
+					updatedMessage.Date = message.Date;
+					updatedMessage.Content = message.Content;
+				}
+				else
+				{
+					selectedContact.Chat.Messages.Add(message);
+				}
+				await InvokeAsync(StateHasChanged);
+			}
         }
         else return;
     }
 
 
+    // private async Task SendMessageGroup(MessegeStorageModel messageSecretStorageModel)
+    // {
+    //     if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
+    //     if (hubConnection.State == HubConnectionState.Connected)
+    //     {
+    //         Message? message = await hubConnection.InvokeAsync<Message?>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
+
+    //         await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
+
+    //         if (message != null && selectedGroup != null && selectedGroup.ChatId == message.ChatId)
+    //         {
+    //             Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+    //             if (updatedMessage != null)
+    //             {
+    //                 updatedMessage.Id = message.Id;
+    //                 updatedMessage.Date = message.Date;
+    //                 updatedMessage.Content = message.Content;
+    //             }
+    //             else
+    //             {
+    //                 selectedGroup.Chat.Messages.Add(message);
+    //             }
+    //             await InvokeAsync(StateHasChanged);
+    //         }
+    //     }
+    //     else return;
+    // }
 
 
-    private async Task SendMessageContact(MessegeStorageModel messageSecretStorageModel)
-    {
-        if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
-        if (hubConnection.State == HubConnectionState.Connected)
-        {
-            Message message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
 
-            await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
 
-            if (message != null &&  selectedContact != null && selectedContact.ChatId == message.ChatId)
-            {
-                Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
-                if (updatedMessage != null)
-                {
-                    updatedMessage.Id = message.Id;
-                    updatedMessage.Date = message.Date;
-                    updatedMessage.Content = message.Content;
-                }
-                else
-                {
-                    selectedContact.Chat.Messages.Add(message);
-                }
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        else return;  
-    }
+    // private async Task SendMessageContact(MessegeStorageModel messageSecretStorageModel)
+    // {
+    //     if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
+    //     if (hubConnection.State == HubConnectionState.Connected)
+    //     {
+    //         Message message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
+
+    //         await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
+
+    //         if (message != null &&  selectedContact != null && selectedContact.ChatId == message.ChatId)
+    //         {
+    //             Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+    //             if (updatedMessage != null)
+    //             {
+    //                 updatedMessage.Id = message.Id;
+    //                 updatedMessage.Date = message.Date;
+    //                 updatedMessage.Content = message.Content;
+    //             }
+    //             else
+    //             {
+    //                 selectedContact.Chat.Messages.Add(message);
+    //             }
+    //             await InvokeAsync(StateHasChanged);
+    //         }
+    //     }
+    //     else return;  
+    // }
 
 
 

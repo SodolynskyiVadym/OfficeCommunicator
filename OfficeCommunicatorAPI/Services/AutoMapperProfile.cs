@@ -32,6 +32,9 @@ namespace OfficeCommunicatorAPI.Services
 
             CreateMap<Message, MessageSignalRModel>();
 
+            CreateMap<MessageDto, Message>()
+                .AfterMap((src, dest) => dest.Date = DateTime.Now);
+
         }
     }
 }

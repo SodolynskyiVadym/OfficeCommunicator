@@ -10,6 +10,7 @@ public class OfficeDbContext : DbContext
     public DbSet<Group> Groups { get; set; }
     public DbSet<Message> Messages { get; set; }
     public DbSet<Chat> Chats { get; set; }
+    public DbSet<Document> Documents { get; set; }
 
     public OfficeDbContext(DbContextOptions<OfficeDbContext> options) : base(options)
     {
@@ -34,15 +35,13 @@ public class OfficeDbContext : DbContext
             .HasIndex(g => g.UniqueIdentifier)
             .IsUnique();
 
+        modelBuilder.Entity<Document>()
+            .HasIndex(d => d.UniqueIdentifier);
+
+
         modelBuilder.Entity<User>()
                 .HasMany(u => u.Groups)
                 .WithMany(g => g.Users);
-                //.UsingEntity<Dictionary<string, object>>(
-                //    "UserGroup",
-                //    j => j.HasOne<Group>().WithMany().HasForeignKey("GroupId"),
-                //    j => j.HasOne<User>().WithMany().HasForeignKey("UserId")
-                //);
-
 
 
         modelBuilder.Entity<User>()
@@ -85,5 +84,13 @@ public class OfficeDbContext : DbContext
             .WithMany()
             .HasForeignKey(m => m.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+    
+            
+        modelBuilder.Entity<Message>()
+            .HasMany(m => m.Documents)
+            .WithOne()
+            .HasForeignKey(d => d.MessageId)
+            .HasPrincipalKey(m => m.Id)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
