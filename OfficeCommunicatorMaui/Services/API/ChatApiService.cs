@@ -106,7 +106,7 @@ namespace OfficeCommunicatorMaui.Services.API
             }
         }
 
-        public async Task DownLoadFileAsync(string fileName, int messageId, int documentId, string token)
+        public async Task<DownloadFileResponseDto?> DownLoadFileAsync(string fileName, int messageId, int documentId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var response = await _httpClient.GetAsync(_url + $"/download/{messageId}/{documentId}");
@@ -123,16 +123,12 @@ namespace OfficeCommunicatorMaui.Services.API
             {
                 var fileContent = await response.Content.ReadAsByteArrayAsync();
                 var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-                //await JSRuntime.InvokeVoidAsync(
-                //    "blazorDownloadFile",
-                //    fileName,
-                //    contentType,
-                //    Convert.ToBase64String(fileContent)
-                //);
+                return new DownloadFileResponseDto(fileContent, fileName, contentType);
             }
             else
             {
                 Console.WriteLine("Failed to download file");
+                return null;
             }
         }
     }

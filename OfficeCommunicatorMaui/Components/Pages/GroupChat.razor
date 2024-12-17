@@ -8,7 +8,7 @@
 		<h4>@message.Content</h4>
 		@foreach(var file in message.Documents)
 		{
-			<h3>@file.Name</h3>
+            <h3 @onclick="@(async () => await OnDownloadFile.InvokeAsync(new DownloadFileRequestDto(file.Id, message.Id, file.Name)))">@file.Name</h3>
 		}
 }
 
@@ -27,6 +27,9 @@
 
 	[Parameter]
 	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
+
+	[Parameter]
+	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
 
 	private string Message { get; set; } = string.Empty;
 

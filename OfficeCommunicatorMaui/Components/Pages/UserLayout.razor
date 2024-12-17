@@ -3,6 +3,7 @@
 @inject AuthApiService AuthApiService
 @inject ChatApiService ChatApiService
 @inject MessageRepository MessageRepository
+@inject IJSRuntime JSRuntime
 
 <header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
     <div class="container-fluid">
@@ -45,7 +46,7 @@
                 {
                     @if (isGroupOpened)
                     {
-                        <GroupChat Group="selectedGroup" OnSendMessage="SendMessage" UserId="user.Id" />
+                        <GroupChat Group="selectedGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
                     }
                     @if (!isGroupOpened)
                     {
@@ -71,7 +72,7 @@
     private Contact? selectedContact { get; set; }
 
     private readonly string serverUrl = "http://localhost:5207/chatHub";
-	private string token { get; set; } = string.Empty;
+    private string token { get; set; } = string.Empty;
 
     private User? user { get; set; }
     private HubConnection hubConnection { get; set; }
@@ -112,7 +113,7 @@
         var unsavedMessages = await MessageRepository.GetUnsentMessagesAsync();
         foreach (var message in unsavedMessages)
         {
-			await MessageRepository.RemoveMessage(message.Id);
+            await MessageRepository.RemoveMessage(message.Id);
             // if (message.UserId == user.Id) await SendMessage(message);
         };
 
@@ -230,7 +231,7 @@
 
         if (messageStorageDto.Id == 0) messageStorageDto = await MessageRepository.AddMessage(messageStorageDto);
 
-        Message? message = await ChatApiService.WriteMessageAsync(messageStorageDto, messageStorageDto.Files, token);
+        Message? message = await ChatApiService.CreateMessageAsync(messageStorageDto, messageStorageDto.Files, token);
         await MessageRepository.RemoveMessage(messageStorageDto.Id);
 
 
@@ -253,86 +254,40 @@
                     selectedGroup.Chat.Messages.Add(message);
                 }
                 await InvokeAsync(StateHasChanged);
-			}
-			else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
-			{
-				Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
-				if (updatedMessage != null)
-				{
-					updatedMessage.Id = message.Id;
-					updatedMessage.Date = message.Date;
-					updatedMessage.Content = message.Content;
-				}
-				else
-				{
-					selectedContact.Chat.Messages.Add(message);
-				}
-				await InvokeAsync(StateHasChanged);
-			}
+            }
+            else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
+            {
+                Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+                if (updatedMessage != null)
+                {
+                    updatedMessage.Id = message.Id;
+                    updatedMessage.Date = message.Date;
+                    updatedMessage.Content = message.Content;
+                }
+                else
+                {
+                    selectedContact.Chat.Messages.Add(message);
+                }
+                await InvokeAsync(StateHasChanged);
+            }
         }
         else return;
     }
 
 
-    // private async Task SendMessageGroup(MessegeStorageModel messageSecretStorageModel)
-    // {
-    //     if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
-    //     if (hubConnection.State == HubConnectionState.Connected)
-    //     {
-    //         Message? message = await hubConnection.InvokeAsync<Message?>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
+    public async Task DownloadFile(DownloadFileRequestDto downloadFileDto)
+    {
+        DownloadFileResponseDto? downloadFileResponseDto = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
 
-    //         await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
+		if (downloadFileResponseDto is null) return;
 
-    //         if (message != null && selectedGroup != null && selectedGroup.ChatId == message.ChatId)
-    //         {
-    //             Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
-    //             if (updatedMessage != null)
-    //             {
-    //                 updatedMessage.Id = message.Id;
-    //                 updatedMessage.Date = message.Date;
-    //                 updatedMessage.Content = message.Content;
-    //             }
-    //             else
-    //             {
-    //                 selectedGroup.Chat.Messages.Add(message);
-    //             }
-    //             await InvokeAsync(StateHasChanged);
-    //         }
-    //     }
-    //     else return;
-    // }
-
-
-
-
-    // private async Task SendMessageContact(MessegeStorageModel messageSecretStorageModel)
-    // {
-    //     if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
-    //     if (hubConnection.State == HubConnectionState.Connected)
-    //     {
-    //         Message message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
-
-    //         await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
-
-    //         if (message != null &&  selectedContact != null && selectedContact.ChatId == message.ChatId)
-    //         {
-    //             Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
-    //             if (updatedMessage != null)
-    //             {
-    //                 updatedMessage.Id = message.Id;
-    //                 updatedMessage.Date = message.Date;
-    //                 updatedMessage.Content = message.Content;
-    //             }
-    //             else
-    //             {
-    //                 selectedContact.Chat.Messages.Add(message);
-    //             }
-    //             await InvokeAsync(StateHasChanged);
-    //         }
-    //     }
-    //     else return;  
-    // }
-
+        await JSRuntime.InvokeVoidAsync(
+           "blazorDownloadFile",
+           downloadFileResponseDto.FileName,
+           downloadFileResponseDto.ContentType,
+           Convert.ToBase64String(downloadFileResponseDto.File)
+        );
+    }
 
 
     public async ValueTask DisposeAsync()
