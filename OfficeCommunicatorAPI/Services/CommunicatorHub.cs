@@ -111,7 +111,7 @@ public class CommunicatorHub : Hub
             Content = content,
             Date = DateTime.Now
         };
-        bool result = await _messageRepository.AddMessageGroupAsync(message);
+        bool result = await _messageRepository.AddMessageAsync(message, async () => await _groupRepository.IsUserGroup(chatId, userId));
         if (!result) return null;
         
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateGroupName(message.ChatId)).SendAsync("ReceiveGroupMessage", message);
@@ -132,7 +132,7 @@ public class CommunicatorHub : Hub
             Content = content,
             Date = DateTime.Now
         };
-        bool result = await _messageRepository.AddMessageContactAsync(message);
+        bool result = await _messageRepository.AddMessageAsync(message, async () => await _contactRepository.IsUserContact(userId, chatId));
         if (!result) return null;
 
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateContactName(message.ChatId)).SendAsync("ReceiveContactMessage", message);

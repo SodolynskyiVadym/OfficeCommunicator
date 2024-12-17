@@ -134,4 +134,12 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         int result = await _dbContext.SaveChangesAsync();
         return result > 0;
     }
+    
+    
+    public async Task<bool> IsUserContact(int userId, int chatId)
+    {
+        Contact? contact = await _dbContext.Contacts.FirstOrDefaultAsync(c => c.ChatId == chatId);
+        if(contact == null || (contact.UserId != userId && contact.AssociatedUserId != userId)) return false;
+        return true;
+    }
 }

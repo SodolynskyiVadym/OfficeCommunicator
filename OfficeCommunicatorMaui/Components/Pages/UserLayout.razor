@@ -70,7 +70,7 @@
 
     private Group? selectedGroup { get; set; }
     private Contact? selectedContact { get; set; }
-
+     
     private readonly string serverUrl = "http://localhost:5207/chatHub";
 
     private User? user { get; set; }
@@ -112,8 +112,8 @@
 		var unsavedMessages = await MessageRepository.GetUnsentMessagesAsync();
         foreach (var message in unsavedMessages)
         {
-            if (message.Communication == nameof(Group)) await SendMessageGroup(message);
-            else if (message.Communication == nameof(Contact)) await SendMessageContact(message);
+            if (message.Communication == nameof(Group) && message.UserId == user.Id) await SendMessageGroup(message);
+            else if (message.Communication == nameof(Contact) && message.UserId == user.Id) await SendMessageContact(message);
         };
 
 
@@ -232,11 +232,11 @@
         if (messageSecretStorageModel.Id == 0) messageSecretStorageModel.Id = await MessageRepository.AddMessage(messageSecretStorageModel);
         if (hubConnection.State == HubConnectionState.Connected)
         {
-            Message message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
+            Message? message = await hubConnection.InvokeAsync<Message?>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
 
-            await MessageRepository.RemoveMessage(message.SqliteIndex);
+            await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
 
-            if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
+            if (message != null && selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
                 Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
                 if (updatedMessage != null)
@@ -265,9 +265,9 @@
         {
             Message message = await hubConnection.InvokeAsync<Message>("SendMessageGroup", messageSecretStorageModel.ChatId, messageSecretStorageModel.Id, messageSecretStorageModel.Content);
 
-            await MessageRepository.RemoveMessage(message.SqliteIndex);
+            await MessageRepository.RemoveMessage(message != null ? message.SqliteIndex : messageSecretStorageModel.Id);
 
-            if (selectedContact != null && selectedContact.ChatId == message.ChatId)
+            if (message != null &&  selectedContact != null && selectedContact.ChatId == message.ChatId)
             {
                 Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
                 if (updatedMessage != null)

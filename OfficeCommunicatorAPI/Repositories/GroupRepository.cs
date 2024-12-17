@@ -40,6 +40,12 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
             .ThenInclude(c => c.Messages)
             .FirstOrDefaultAsync(g => g.Id == groupId && g.Users.FirstOrDefault(u => u.Id == userId) != null);
     }
+    
+    
+    public async Task<Group?> GetGroupWithUsers(int groupId)
+    {
+        return await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
+    }
 
     public async Task<List<Group>> GetAllAsync()
     {
@@ -66,6 +72,21 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         await _dbContext.SaveChangesAsync();
         return group;
     }
+    
+    
+    public async Task<bool> AddUserToGroupAsync(int groupId, int userId)
+    {
+        Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
+        if (group == null) return false;
+
+        User? user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return false;
+        if(group.Users.Any(u => u.Id == userId)) return false;
+
+        group.Users.Add(user);
+
+        return await _dbContext.SaveChangesAsync() > 0;
+    }
 
     public async Task<bool> UpdateAsync(GroupUpdateDto groupDto)
     {
@@ -88,11 +109,6 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
     }
     
     
-    public async Task<Group?> GetGroupWithUsers(int groupId)
-    {
-        return await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
-    }
-    
     public async Task<bool> IsUserAdmin(int groupId, int userId)
     {
         Group? group = await _dbContext.Groups.Include(g => g.Admins).FirstOrDefaultAsync(g => g.Id == groupId);
@@ -102,17 +118,10 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
     }
 
 
-    public async Task<bool> AddUserToGroupAsync(int groupId, int userId)
+    public async Task<bool> IsUserGroup(int chatId, int userId)
     {
-        Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
+        Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.ChatId == chatId);
         if (group == null) return false;
-
-        User? user = await _dbContext.Users.FindAsync(userId);
-        if (user == null) return false;
-        if(group.Users.Any(u => u.Id == userId)) return false;
-
-        group.Users.Add(user);
-
-        return await _dbContext.SaveChangesAsync() > 0;
+        return group.Users.Any(u => u.Id == userId);
     }
 }
