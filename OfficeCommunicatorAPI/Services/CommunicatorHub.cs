@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using OfficeCommunicatorAPI.DTO;
 using OfficeCommunicatorAPI.Models;
 using OfficeCommunicatorAPI.Repositories;
+using OfficeCommunicatorAPI.Services.Checkers;
 
 namespace OfficeCommunicatorAPI.Services;
 
@@ -14,6 +15,8 @@ public class CommunicatorHub : Hub
     private readonly GroupRepository _groupRepository;
     private readonly ContactRepository _contactRepository;
     private readonly MessageRepository _messageRepository;
+    private readonly GroupChecker _groupChecker;
+    private readonly ContactChecker _contactChecker;
     private readonly IMapper _mapper;
     private static int _counter;
 
@@ -103,7 +106,7 @@ public class CommunicatorHub : Hub
     public async Task SendMessage(Message message)
     {
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId) || userId != message.UserId) return;
-        if ((!await _groupRepository.IsUserGroup(message.ChatId, userId)) && (!await _contactRepository.IsUserContact(message.ChatId, userId))) return;
+        if ((!await _groupChecker.CheckPermissionUser(userId, message.ChatId)) && (!await _contactChecker.CheckPermissionUser(userId, message.ChatId))) return;
 
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateGroupName(message.ChatId)).SendAsync("ReceiveMessage", message);
     }

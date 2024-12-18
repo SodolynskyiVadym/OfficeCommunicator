@@ -6,6 +6,7 @@ using OfficeCommunicatorAPI.Models;
 using OfficeCommunicatorAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json;
+using OfficeCommunicatorAPI.Services.Checkers;
 
 namespace OfficeCommunicatorAPI.Controllers;
 
@@ -20,6 +21,8 @@ public class ChatController : ControllerBase
     private readonly DocumentRepository _documentRepository;
     private readonly IMapper _mapper;
     private readonly BlobStorageService _fileService;
+    private readonly GroupChecker _groupChecker;
+    private readonly ContactChecker _contactChecker;
 
     public ChatController(IMapper mapper, OfficeDbContext dbContext, AuthHelper authHelper, BlobStorageService fileService)
     {
@@ -30,6 +33,8 @@ public class ChatController : ControllerBase
         _messageRepository = new MessageRepository(dbContext, mapper);
         _documentRepository = new DocumentRepository(dbContext);
         _fileService = fileService;
+        _groupChecker = new GroupChecker(dbContext);
+        _contactChecker = new ContactChecker(dbContext);
     }
 
 
@@ -93,14 +98,19 @@ public class ChatController : ControllerBase
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
         messageDto.UserId = userId;
 
-        Message? message = await _messageRepository.AddAsync(messageDto);
+        Message? message;
+
+        if(messageDto.CommunicationType.Equals(typeof(Group))) message = await _messageRepository.AddAsync(messageDto, _groupChecker);
+        else if(messageDto.CommunicationType.Equals(typeof(Contact))) message = await _messageRepository.AddAsync(messageDto, _contactChecker);
+        else return BadRequest("Invalid communication type");
+
+
         if (message == null) return BadRequest("Invalid message");
 
         string uniqueFileName;
         List<Document> documents = new();
         foreach (var file in files)
         {
-            Console.WriteLine($"name {file.Name} file name is {file.FileName} content type is {file.ContentType}");
             uniqueFileName = _fileService.GenerateFileName(file.FileName, message.Id);
             await _fileService.UploadFileAsync(file, uniqueFileName);
             documents.Add(new Document { MessageId = message.Id, Name = file.FileName, UniqueIdentifier = uniqueFileName });

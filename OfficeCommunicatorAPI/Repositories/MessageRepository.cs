@@ -2,6 +2,7 @@
 using OfficeCommunicatorAPI.DTO;
 using OfficeCommunicatorAPI.Models;
 using OfficeCommunicatorAPI.Services;
+using OfficeCommunicatorAPI.Services.Checkers;
 
 namespace OfficeCommunicatorAPI.Repositories;
 
@@ -36,10 +37,9 @@ public class MessageRepository
         throw new NotImplementedException();
     }
 
-    public async Task<Message?> AddAsync(MessageDto messageDto)
+    public async Task<Message?> AddAsync(MessageDto messageDto, IChecker checker)
     {
-        bool result = (await _groupRepository.IsUserGroup(messageDto.ChatId, messageDto.UserId)) || (await _contactRepository.IsUserContact(messageDto.ChatId, messageDto.UserId));
-        if (!result) return null;
+        if (await checker.CheckPermissionUser(messageDto.UserId, messageDto.ChatId)) return null;
 
         Message message = _mapper.Map<Message>(messageDto);
         await _dbContext.AddAsync(message);

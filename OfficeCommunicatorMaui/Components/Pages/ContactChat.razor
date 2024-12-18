@@ -46,12 +46,17 @@
 			Date = DateTime.Now
 		});
 
-		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, Contact.ChatId, Message, SelectedFiles));
+		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, typeof(Contact), Contact.ChatId, Message, SelectedFiles));
 		Message = string.Empty;
 	}
 
 	private void HandleFileSelection(InputFileChangeEventArgs e)
 	{
-		SelectedFiles = e.GetMultipleFiles().ToList();
+		var files = e.GetMultipleFiles().ToList();
+		foreach (var file in files)
+		{
+			if (SelectedFiles.Any(f => f.Name == file.Name)) SelectedFiles.RemoveRange(SelectedFiles.Where(f => f.Name == file.Name));
+			SelectedFiles.Add(file);
+		}
 	}
 }
