@@ -39,7 +39,7 @@ public class MessageRepository
 
     public async Task<Message?> AddAsync(MessageDto messageDto, IChecker checker)
     {
-        if (await checker.CheckPermissionUser(messageDto.UserId, messageDto.ChatId)) return null;
+        if (!await checker.CheckPermissionUser(messageDto.UserId, messageDto.ChatId)) return null;
 
         Message message = _mapper.Map<Message>(messageDto);
         await _dbContext.AddAsync(message);

@@ -15,7 +15,6 @@ namespace OfficeCommunicatorMaui.DTO
 
         public MessageStorageDto(int userId, string communicationType, int chatId, string content, List<IBrowserFile> files)
         {
-            Id = id;
             UserId = userId;
             CommunicationType = communicationType;
             ChatId = chatId;

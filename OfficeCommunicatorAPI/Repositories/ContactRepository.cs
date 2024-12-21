@@ -85,15 +85,15 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
     }
 
 
-    public async Task<Contact[]?> AddContactAsync(int userId, int associatedUserId)
+    public async Task<(Contact?, Contact?)> AddContactAsync(int userId, int associatedUserId)
     {
-        if (associatedUserId == userId) return null;
+        if (associatedUserId == userId) return (null, null);
 
         User? associatedUser = await _dbContext.Users.FindAsync(associatedUserId);
-        if (associatedUser == null) return null;
+        if (associatedUser == null) return (null, null);
 
         User? user = await _dbContext.Users.FindAsync(userId);
-        if (user == null) return null;
+        if (user == null) return (null, null);
 
         Chat chat = new Chat();
         await _dbContext.Chats.AddAsync(chat);
@@ -118,7 +118,7 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         await _dbContext.Contacts.AddAsync(associatedContact);
         await _dbContext.SaveChangesAsync();
 
-        return [contact, associatedContact];
+        return (contact, associatedContact);
     }
 
     public Task<bool> UpdateAsync(ContactUpdateDto entity)

@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject AuthApiService AuthApiService
+@inject SecureStorageService SecureStorageService
 
 @if (isAuth)
 {
@@ -27,19 +28,19 @@ else
         {
             isAuth = true;
         }
-	}
+    }
 
     public void Logout()
     {
         SecureStorageService.RemoveToken();
         isAuth = false;
-		StateHasChanged();
+        StateHasChanged();
     }
 
     public async Task Login(string token)
     {
-		await SecureStorageService.SaveTokenAsync(token);
-		isAuth = true;
+        await SecureStorageService.SaveTokenAsync(token);
+        isAuth = true;
 		await InvokeAsync(StateHasChanged);
     }
 }

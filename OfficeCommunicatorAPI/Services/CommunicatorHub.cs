@@ -27,6 +27,8 @@ public class CommunicatorHub : Hub
         _userRepository = new UserRepository(dbContext, mapper, authHelper);
         _groupRepository = new GroupRepository(dbContext, mapper);
         _contactRepository = new ContactRepository(dbContext, mapper);
+        _groupChecker = new GroupChecker(dbContext);
+        _contactChecker = new ContactChecker(dbContext);
     }
 
 
@@ -75,12 +77,9 @@ public class CommunicatorHub : Hub
         Contact? contact = await _contactRepository.GetByUserIdAndAssociatedUserIdAsync(userId, associatedUserId);
         if (contact != null) return null;
 
-        Contact[]? contacts = await _contactRepository.AddContactAsync(associatedUserId, userId);
+        (contact, Contact? associatedContact) = await _contactRepository.AddContactAsync(associatedUserId, userId);
 
-        if (contacts == null) return null;
-
-        contact = contacts[0];
-        Contact associatedContact = contacts[1];
+        if (contact == null) return null;
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateGroupName(contact.ChatId));
         await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(associatedUserId)).SendAsync("ReceiveContact", associatedContact);

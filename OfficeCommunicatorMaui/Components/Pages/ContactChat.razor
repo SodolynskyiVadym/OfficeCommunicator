@@ -8,14 +8,15 @@
 	<h4>@message.Content</h4>
 	@foreach (var file in message.Documents)
 	{
-		<h3>@file.Name</h3>
+		<h3 style="cursor: pointer" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)">@file.Name</h3>
+
 	}
 }
 
 <input type="text" @bind="Message" />
 <button @onclick="SendMessage">Send</button>
 
-<InputFile OnChange="HandleFileSelection" multiple />
+<InputFile @key=@(inputFileKey) OnChange="HandleFileSelection" multiple />
 
 @code {
 	[Parameter]
@@ -27,7 +28,11 @@
 	[Parameter]
 	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
 
+	[Parameter]
+	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
+
 	private string Message { get; set; } = string.Empty;
+	private string inputFileKey { get; set; } = Guid.NewGuid().ToString();
 
 	private List<IBrowserFile> SelectedFiles { get; set; } = new();
 
@@ -38,16 +43,32 @@
 
 	private async Task SendMessage()
 	{
+		List<Document> documents = new();
+		foreach (var file in SelectedFiles)
+		{
+			documents.Add(new Document()
+				{
+					Name = file.Name,
+					UniqueIdentifier = string.Empty
+
+				});
+		}
 		Contact.Chat.Messages.Add(new Message()
 		{
 			Content = Message,
 			UserId = UserId,
 			ChatId = Contact.ChatId,
-			Date = DateTime.Now
+			Date = DateTime.Now,
+			Documents = documents
 		});
-
-		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, typeof(Contact), Contact.ChatId, Message, SelectedFiles));
+		SelectedFiles.Clear();
+		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Contact), Contact.ChatId, Message, SelectedFiles));
 		Message = string.Empty;
+	}
+
+	private async Task DownloadFile(int fileId, int messageId, string fileName)
+	{
+		if(fileId > 0) await OnDownloadFile.InvokeAsync(new DownloadFileRequestDto(fileId, messageId, fileName));
 	}
 
 	private void HandleFileSelection(InputFileChangeEventArgs e)
@@ -55,8 +76,9 @@
 		var files = e.GetMultipleFiles().ToList();
 		foreach (var file in files)
 		{
-			if (SelectedFiles.Any(f => f.Name == file.Name)) SelectedFiles.RemoveRange(SelectedFiles.Where(f => f.Name == file.Name));
+			if (SelectedFiles.Any(f => f.Name == file.Name)) SelectedFiles.RemoveAll(f => f.Name == file.Name);
 			SelectedFiles.Add(file);
 		}
+		inputFileKey = Guid.NewGuid().ToString();
 	}
 }

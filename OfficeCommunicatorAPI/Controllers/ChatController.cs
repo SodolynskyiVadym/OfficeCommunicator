@@ -92,20 +92,27 @@ public class ChatController : ControllerBase
     [HttpPost("create-message")]
     public async Task<IActionResult> CreateMessage([FromForm]string messageDtoJson, [FromForm]List<IFormFile> files)
     {
+        Console.WriteLine("Sending message work");
         MessageDto? messageDto = JsonConvert.DeserializeObject<MessageDto>(messageDtoJson);
+        Console.WriteLine(messageDto.CommunicationType);
+        Console.WriteLine($"Message content {messageDto.Content}");
+
 
         if (messageDto == null) return BadRequest("Invalid message");
+        Console.WriteLine("From json to class work");
+
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
         messageDto.UserId = userId;
 
         Message? message;
 
-        if(messageDto.CommunicationType.Equals(typeof(Group))) message = await _messageRepository.AddAsync(messageDto, _groupChecker);
-        else if(messageDto.CommunicationType.Equals(typeof(Contact))) message = await _messageRepository.AddAsync(messageDto, _contactChecker);
+        if(messageDto.CommunicationType.Equals(nameof(Group))) message = await _messageRepository.AddAsync(messageDto, _groupChecker);
+        else if(messageDto.CommunicationType.Equals(nameof(Contact))) message = await _messageRepository.AddAsync(messageDto, _contactChecker);
         else return BadRequest("Invalid communication type");
-
+        Console.WriteLine("Add work");
 
         if (message == null) return BadRequest("Invalid message");
+        Console.WriteLine("Message not nulll");
 
         string uniqueFileName;
         List<Document> documents = new();
@@ -120,6 +127,7 @@ public class ChatController : ControllerBase
         return Ok(message);
     }
 
+
     [Authorize]
     [HttpGet("download/{messegeId}/{documentId}")]
     public async Task<IActionResult> DownloadFile(int messegeId, int documentId)
@@ -127,6 +135,8 @@ public class ChatController : ControllerBase
         Document? document = await _documentRepository.GetByIdAsync(documentId);
         if (document == null) return BadRequest("File not found");
         if (document.MessageId != messegeId) return BadRequest("Invalid file id");
+        Console.WriteLine($"Document id {document.Id}");
+
 
         Stream stream = await _fileService.DownloadFileAsync(document.UniqueIdentifier);
         return File(stream, "application/octet-stream", document.Name);

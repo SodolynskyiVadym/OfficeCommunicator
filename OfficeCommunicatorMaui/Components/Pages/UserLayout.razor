@@ -3,6 +3,7 @@
 @inject AuthApiService AuthApiService
 @inject ChatApiService ChatApiService
 @inject MessageRepository MessageRepository
+@inject SecureStorageService SecureStorageService
 @inject IJSRuntime JSRuntime
 
 <header class="bg-dark text-white" style="font-size: 1.25rem; font-weight: 600; padding: 1rem 0;">
@@ -50,7 +51,7 @@
                     }
                     @if (!isGroupOpened)
                     {
-                        <ContactChat Contact="selectedContact" OnSendMessage="SendMessage" UserId="user.Id" />
+                        <ContactChat Contact="selectedContact" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
                     }
                 }
             </article>
@@ -61,6 +62,7 @@
 @code {
     [Parameter]
     public EventCallback OnLogout { get; set; }
+
 
     private bool isChatOpened { get; set; }
     private bool isGroupOpened { get; set; }
@@ -126,18 +128,12 @@
             {
                 selectedGroup.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
-            }
-        });
-
-
-        hubConnection.On<Message>("ReceiveMessage", async (message) =>
-        {
-            Console.Beep();
-            if(selectedContact != null && selectedContact.ChatId == message.ChatId)
-            {
-                selectedContact.Chat.Messages.Add(message);
-                await InvokeAsync(StateHasChanged);
-            }
+		}
+		else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
+		{
+			selectedContact.Chat.Messages.Add(message);
+			await InvokeAsync(StateHasChanged);
+        }
         });
 
 
@@ -168,7 +164,7 @@
 
     private async Task<Group?> GetGroup(int groupId)
     {
-        string? token = await SecureStorageService.GetTokenAsync();
+        // string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token)) return null;
         else return await ChatApiService.GetGroupAsync(groupId, token);
     }
@@ -176,7 +172,7 @@
 
     private async Task<Contact?> GetContact(int contactId)
     {
-        string? token = await SecureStorageService.GetTokenAsync();
+        // string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token)) return null;
         else return await ChatApiService.GetContactAsync(contactId, token);
     }
@@ -195,7 +191,6 @@
         Console.Beep();
         selectedGroupId = group.Id;
         selectedContactId = 0;
-        selectedContact = null;
         selectedGroup = await GetGroup(selectedGroupId);
         if (selectedGroup == null)
         {
@@ -204,6 +199,7 @@
         }
         isGroupOpened = true;
         isChatOpened = true;
+        selectedContact = null;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -213,7 +209,6 @@
         Console.Beep();
         selectedContactId = contact.Id;
         selectedGroupId = 0;
-        selectedGroup = null;
         selectedContact = await GetContact(selectedContactId);
         if (selectedContact == null)
         {
@@ -222,6 +217,7 @@
         }
         isGroupOpened = false;
         isChatOpened = true;
+        selectedGroup = null;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -233,8 +229,6 @@
 
         Message? message = await ChatApiService.CreateMessageAsync(messageStorageDto, messageStorageDto.Files, token);
         await MessageRepository.RemoveMessage(messageStorageDto.Id);
-
-
 
         if (hubConnection.State == HubConnectionState.Connected && message != null)
         {
@@ -279,7 +273,7 @@
     {
         DownloadFileResponseDto? downloadFileResponseDto = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
 
-		if (downloadFileResponseDto is null) return;
+		if (downloadFileResponseDto == null) return;
 
         await JSRuntime.InvokeVoidAsync(
            "blazorDownloadFile",

@@ -34,14 +34,12 @@ namespace OfficeCommunicatorAPI.Services
 
         public string GenerateFileName(string realName, int messegeId)
         {
-            return $"{Guid.NewGuid}_{realName}";
+            return $"{messegeId}_{realName}";
         }
 
         public string GetRealFileName(string fileName)
         {
-            var index = fileName.IndexOf('_');
-            if (index == -1) return fileName;
-            return fileName[(index + 1)..];
+            return fileName.Split('_')[1];
         }
     }
 }

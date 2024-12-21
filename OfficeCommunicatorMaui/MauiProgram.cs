@@ -15,6 +15,7 @@ public static class MauiProgram
 
         string serverUrl = "http://localhost:5207";
         string dbPath = Path.Combine(FileSystem.AppDataDirectory, "app_database.db");
+        Random random = new Random();
 
         builder.Services.AddMauiBlazorWebView();
 
@@ -29,7 +30,8 @@ public static class MauiProgram
 
         builder.Services.AddSingleton(sp => new MessageRepository(dbContext));
 
-        //builder.Services.AddSingleton(sp => new SignalRService(serverUrl + "/chatHub"));
+        builder.Services.AddSingleton(sp => new SecureStorageService(random.Next(1, 3)));
+
 
 
 
