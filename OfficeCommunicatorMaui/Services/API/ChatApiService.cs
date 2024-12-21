@@ -89,13 +89,13 @@ namespace OfficeCommunicatorMaui.Services.API
 
             foreach (var file in files)
             {
-                Debug.WriteLine($"File to upload: {file.Name}");
                 var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
                 content.Add(fileContent, "files", file.Name);
             }
 
             var response = await _httpClient.PostAsync(_url + "/create-message", content);
+            //response.
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<Message>();

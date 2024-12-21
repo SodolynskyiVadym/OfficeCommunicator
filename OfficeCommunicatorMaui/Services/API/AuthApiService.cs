@@ -15,27 +15,17 @@ namespace OfficeCommunicatorMaui.Services.API
             _url = url + "/user";
         }
 
-        public async Task<User?> GetUserAsync(string token)
+        public async Task<ServerResponse<User>> GetUserAsync(string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             try
             {
                 var response = await _httpClient.GetAsync(_url + "/get");
-                if (response.IsSuccessStatusCode)
-                {
-                    User? result = await response.Content.ReadFromJsonAsync<User>();
-                    if (result == null) throw new Exception("User not found");
-                    return result;
-                }
-                else
-                {
-                    var error = response.ReasonPhrase;
-                    return null;
-                }
+                return new ServerResponse<User>(response);
             }
             catch (Exception e)
             {
-                return null;
+                return new ServerResponse<User>(null, 500, false, e.Message);
             }
         }
 

@@ -92,10 +92,8 @@ public class ChatController : ControllerBase
     [HttpPost("create-message")]
     public async Task<IActionResult> CreateMessage([FromForm]string messageDtoJson, [FromForm]List<IFormFile> files)
     {
-        Console.WriteLine("Sending message work");
+        Console.WriteLine($"Count files {files.Count}");
         MessageDto? messageDto = JsonConvert.DeserializeObject<MessageDto>(messageDtoJson);
-        Console.WriteLine(messageDto.CommunicationType);
-        Console.WriteLine($"Message content {messageDto.Content}");
 
 
         if (messageDto == null) return BadRequest("Invalid message");

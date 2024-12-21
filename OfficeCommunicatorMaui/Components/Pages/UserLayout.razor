@@ -88,12 +88,14 @@
             return;
         }
 
-        user = await AuthApiService.GetUserAsync(token);
-        if (user == null)
+
+		var userResponse = await AuthApiService.GetUserAsync(token);
+        if (!userResponse.IsSuccess)
         {
             await OnLogout.InvokeAsync();
             return;
-        }
+		}
+		else user = userResponse.Data;
 
 
         hubConnection = new HubConnectionBuilder()

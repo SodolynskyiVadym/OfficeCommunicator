@@ -16,7 +16,11 @@
 <input type="text" @bind="Message" />
 <button @onclick="SendMessage">Send</button>
 
-<InputFile @key=@(inputFileKey) OnChange="HandleFileSelection" multiple />
+
+@for (int i = 0; i < countInputsFiles; i++)
+{
+	<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
+}
 
 @code {
 	[Parameter]
@@ -32,13 +36,18 @@
 	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
 
 	private string Message { get; set; } = string.Empty;
-	private string inputFileKey { get; set; } = Guid.NewGuid().ToString();
+	private int countInputsFiles { get; set; } = 1;
 
 	private List<IBrowserFile> SelectedFiles { get; set; } = new();
 
 	protected override async Task OnInitializedAsync()
 	{
 		Contact.Chat.Messages = Contact.Chat.Messages.OrderBy(m => m.Date).ToList();
+	}
+
+	private string GetInputFileStyle(int index)
+	{
+		return index == countInputsFiles - 1 ? "" : "display: none";
 	}
 
 	private async Task SendMessage()
@@ -61,8 +70,8 @@
 			Date = DateTime.Now,
 			Documents = documents
 		});
-		SelectedFiles.Clear();
 		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Contact), Contact.ChatId, Message, SelectedFiles));
+		SelectedFiles.Clear();
 		Message = string.Empty;
 	}
 
@@ -73,12 +82,12 @@
 
 	private void HandleFileSelection(InputFileChangeEventArgs e)
 	{
+		countInputsFiles++;
 		var files = e.GetMultipleFiles().ToList();
 		foreach (var file in files)
 		{
 			if (SelectedFiles.Any(f => f.Name == file.Name)) SelectedFiles.RemoveAll(f => f.Name == file.Name);
 			SelectedFiles.Add(file);
 		}
-		inputFileKey = Guid.NewGuid().ToString();
 	}
 }
