@@ -45,10 +45,10 @@ namespace OfficeCommunicatorMaui.Services.API
             }
         }
 
-        public async Task<string?> RegisterAsync(string username, string password)
+        public async Task<string?> SignUp(string userName, string email, string uniqueName, string zoomUrl, string password)
         {
-            var registerRequest = new { Email = username, Password = password };
-            var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(registerRequest));
+            var signUpRequest = new { Email = email, Name = userName, UniqueName = uniqueName, ZoomUrl = zoomUrl, Password = password };
+            var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
 
             if (response.IsSuccessStatusCode)
             {

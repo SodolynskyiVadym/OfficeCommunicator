@@ -10,8 +10,11 @@ namespace OfficeCommunicatorMaui.Models
     {
         public int Id { get; set; }
         public string Email { get; set; }
+        public string ZoomUrl { get; set; }
         public string Name { get; set; }
         public string UniqueName { get; set; }
+        public string AzureToken { get; set; }
+        public string AzureIdentity { get; set; }
         public List<Group> Groups { get; set; }
         public List<Contact> Contacts { get; set; }
     }

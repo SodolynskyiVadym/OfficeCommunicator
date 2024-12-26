@@ -1,4 +1,6 @@
-﻿namespace OfficeCommunicatorMaui.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace OfficeCommunicatorMaui.Models
 {
     public class Message
     {

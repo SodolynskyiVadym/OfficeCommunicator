@@ -33,6 +33,16 @@
     </div>
 </header>
 
+@if (isCallingRequest)
+{
+    <CallRequest Call="callRequest" OnAccept="AcceptCall" OnReject="RejectCall"></CallRequest>
+}
+@if (isCalling)
+{
+    <CallingPage Call="userCall" OnCancel="CancelCall"></CallingPage>
+}
+
+
 
 <div class="page">
     @if(user != null)
@@ -47,11 +57,11 @@
                 {
                     @if (isGroupOpened)
                     {
-                        <GroupChat Group="selectedGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
+                        <GroupChat Group="selectedGroup" OnCallGroup="CallGroup"  OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
                     }
                     @if (!isGroupOpened)
                     {
-                        <ContactChat Contact="selectedContact" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
+                        <ContactChat Contact="selectedContact" AssociatedUserId="selectedContact.AssociatedUserId" OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
                     }
                 }
             </article>
@@ -66,17 +76,21 @@
 
     private bool isChatOpened { get; set; }
     private bool isGroupOpened { get; set; }
+    private bool isCallingRequest { get; set; }
+    private bool isCalling { get; set; }
 
     private int selectedGroupId { get; set; }
     private int selectedContactId { get; set; }
 
     private Group? selectedGroup { get; set; }
     private Contact? selectedContact { get; set; }
+    private CallInfo? callRequest { get; set; }
+    private CallInfo? userCall { get; set; }
 
     private readonly string serverUrl = "http://localhost:5207/chatHub";
     private string token { get; set; } = string.Empty;
 
-    private User? user { get; set; }
+    private User user { get; set; }
     private HubConnection hubConnection { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -89,13 +103,13 @@
         }
 
 
-		var userResponse = await AuthApiService.GetUserAsync(token);
-        if (!userResponse.IsSuccess)
+        var userResponse = await AuthApiService.GetUserAsync(token);
+        if (!userResponse.IsSuccess || userResponse.Data == null)
         {
             await OnLogout.InvokeAsync();
             return;
-		}
-		else user = userResponse.Data;
+        }
+        else user = userResponse.Data;
 
 
         hubConnection = new HubConnectionBuilder()
@@ -117,8 +131,7 @@
         var unsavedMessages = await MessageRepository.GetUnsentMessagesAsync();
         foreach (var message in unsavedMessages)
         {
-            await MessageRepository.RemoveMessage(message.Id);
-            // if (message.UserId == user.Id) await SendMessage(message);
+            if (message.UserId == user.Id) await SendMessage(message);
         };
 
 
@@ -130,12 +143,12 @@
             {
                 selectedGroup.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
-		}
-		else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
-		{
-			selectedContact.Chat.Messages.Add(message);
-			await InvokeAsync(StateHasChanged);
-        }
+            }
+            else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
+            {
+                selectedContact.Chat.Messages.Add(message);
+                await InvokeAsync(StateHasChanged);
+            }
         });
 
 
@@ -156,17 +169,72 @@
 
         hubConnection.On<Contact>("ReceiveContact", async (contact) =>
         {
-            Console.Beep();
             await hubConnection.SendAsync("SubscribeContact", contact.Id);
             user.Contacts.Add(contact);
             await InvokeAsync(StateHasChanged);
+        });
+
+
+        hubConnection.On<int>("ReceiveUserCall", async (userId) =>
+        {
+            if (isCallingRequest) return;
+
+			Contact? contact = user.Contacts.FirstOrDefault(c => c.AssociatedUserId == userId);
+			if (contact == null) return;
+
+            callRequest = new CallInfo()
+            {
+				UserId = userId,
+                UniqueName = contact.AssociatedUser.UniqueName,
+                UserName = contact.AssociatedUser.Name
+            };
+            isCallingRequest = true;
+            await InvokeAsync(StateHasChanged);
+        });
+
+
+        hubConnection.On<int, string>("ReceiveGroupCall", async (chatId, zoomUrl) =>
+        {
+            if (isCallingRequest) return;
+            string? groupName = user.Groups.FirstOrDefault(g => g.ChatId == chatId)?.Name;
+            if (string.IsNullOrEmpty(groupName)) return;
+
+            callRequest = new CallInfo() { GroupName = groupName, ZoomUrl = zoomUrl};
+
+            isCallingRequest = true;
+            await InvokeAsync(StateHasChanged);
+        });
+
+
+        hubConnection.On<int>("RejectAnswer", async (userId) =>
+        {
+            if (callRequest != null && callRequest.UserId != userId) return;
+			CloseCalling();
+            await InvokeAsync(StateHasChanged);
+        });
+
+
+        hubConnection.On<string>("ReceiveAnswer", async (identity) =>
+        {
+			CloseCalling();
+			await InvokeAsync(StateHasChanged);
+            await Launcher.OpenAsync($"http://localhost:8080?callerUserId={identity}&token={user.AzureToken}");
+        });
+
+
+        hubConnection.On<int>("OnCancelCall", async (userId) =>
+        {
+            if (callRequest != null && userId == callRequest.UserId)
+            {
+				CloseCallRequest();
+                await InvokeAsync(StateHasChanged);
+            }
         });
     }
 
 
     private async Task<Group?> GetGroup(int groupId)
     {
-        // string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token)) return null;
         else return await ChatApiService.GetGroupAsync(groupId, token);
     }
@@ -174,7 +242,6 @@
 
     private async Task<Contact?> GetContact(int contactId)
     {
-        // string? token = await SecureStorageService.GetTokenAsync();
         if (string.IsNullOrEmpty(token)) return null;
         else return await ChatApiService.GetContactAsync(contactId, token);
     }
@@ -211,7 +278,7 @@
         Console.Beep();
         selectedContactId = contact.Id;
         selectedGroupId = 0;
-        selectedContact = await GetContact(selectedContactId);
+        selectedContact = await GetContact(contact.AssociatedUserId);
         if (selectedContact == null)
         {
             await ExitUserPage();
@@ -239,31 +306,15 @@
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
                 Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
-                if (updatedMessage != null)
-                {
-                    updatedMessage.Id = message.Id;
-                    updatedMessage.Date = message.Date;
-                    updatedMessage.Content = message.Content;
-                }
-                else
-                {
-                    selectedGroup.Chat.Messages.Add(message);
-                }
+                if (updatedMessage != null) selectedGroup.Chat.Messages.Remove(updatedMessage);
+                selectedGroup.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
             }
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
             {
                 Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
-                if (updatedMessage != null)
-                {
-                    updatedMessage.Id = message.Id;
-                    updatedMessage.Date = message.Date;
-                    updatedMessage.Content = message.Content;
-                }
-                else
-                {
-                    selectedContact.Chat.Messages.Add(message);
-                }
+                if (updatedMessage != null) selectedContact.Chat.Messages.Remove(updatedMessage);
+                selectedContact.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -275,7 +326,7 @@
     {
         DownloadFileResponseDto? downloadFileResponseDto = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
 
-		if (downloadFileResponseDto == null) return;
+        if (downloadFileResponseDto == null) return;
 
         await JSRuntime.InvokeVoidAsync(
            "blazorDownloadFile",
@@ -284,6 +335,64 @@
            Convert.ToBase64String(downloadFileResponseDto.File)
         );
     }
+
+    public async Task CallUser(int callerUserId)
+    {
+        if (!isCalling)
+        {
+            isCalling = true;
+            string userName = user.Contacts.FirstOrDefault(c => c.AssociatedUserId == callerUserId)?.AssociatedUser.Name ?? string.Empty;
+            if (string.IsNullOrEmpty(userName)) return;
+            userCall = new CallInfo() { UserId = callerUserId, UserName = userName };
+            await hubConnection.SendAsync("CallUser", user.Id, callerUserId);
+			await InvokeAsync(StateHasChanged);
+        }
+
+    }
+
+    public async Task CallGroup(int chatId)
+    {
+        if (!isCallingRequest) await hubConnection.SendAsync("CallGroup", chatId, user.ZoomUrl);
+    }
+
+    public async Task AcceptCall(CallInfo call)
+    {
+		CloseCallRequest();
+        if (!string.IsNullOrEmpty(call.ZoomUrl)) await Launcher.OpenAsync(call.ZoomUrl);
+        else
+        {
+            await hubConnection.SendAsync("AnswerCall", call.UserId, user.AzureIdentity);
+            await Launcher.OpenAsync($"http://localhost:8080?token={user.AzureToken}");
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    public async Task RejectCall(CallInfo call)
+    {
+		CloseCallRequest();
+        if(string.IsNullOrEmpty(call.ZoomUrl)) await hubConnection.SendAsync("RejectCall", user.Id, call.UserId);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task CancelCall(CallInfo call)
+    {
+        await hubConnection.SendAsync("CancelCall", user.Id, call.UserId);
+		CloseCalling();
+    }
+
+
+    public void CloseCallRequest()
+    {
+        isCallingRequest = false;
+		callRequest = null;
+    }
+
+	public void CloseCalling()
+	{
+		isCalling = false;
+		userCall = null;
+	}
 
 
     public async ValueTask DisposeAsync()

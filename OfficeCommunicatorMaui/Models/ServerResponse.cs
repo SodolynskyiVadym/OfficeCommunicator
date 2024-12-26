@@ -5,7 +5,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OfficeCommunicatorMaui.Services
+namespace OfficeCommunicatorMaui.Models
 {
     public class ServerResponse<T>
     {
@@ -17,7 +17,7 @@ namespace OfficeCommunicatorMaui.Services
         public ServerResponse(HttpResponseMessage response)
         {
             Data = response.Content.ReadFromJsonAsync<T>().Result;
-            StatusCode = ((int)response.StatusCode);
+            StatusCode = (int)response.StatusCode;
             IsSuccess = response.IsSuccessStatusCode;
             ErrorMessage = response.ReasonPhrase;
         }

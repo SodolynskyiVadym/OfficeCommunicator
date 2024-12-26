@@ -9,6 +9,10 @@ public class User
     public string Email { get; set; }
     public string UniqueName  { get; set; }
 
+    public string ZoomUrl { get; set; }
+    public string AzureToken { get; set; }
+    public string AzureIdentity { get; set; }
+
     [JsonIgnore]
     public byte[] PasswordHash { get; set; }
 

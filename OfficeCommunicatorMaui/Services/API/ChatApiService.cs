@@ -38,10 +38,10 @@ namespace OfficeCommunicatorMaui.Services.API
         }
 
 
-        public async Task<Contact?> GetContactAsync(int contactId, string token)
+        public async Task<Contact?> GetContactAsync(int associatedUserId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync(_url + $"/get-contact/{contactId}");
+            var response = await _httpClient.GetAsync(_url + $"/get-contact/{associatedUserId}");
             if (response.IsSuccessStatusCode)
             {
                 Contact? result = await response.Content.ReadFromJsonAsync<Contact>();

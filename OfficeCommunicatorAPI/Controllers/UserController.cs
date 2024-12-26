@@ -15,12 +15,14 @@ namespace OfficeCommunicatorAPI.Controllers
         private readonly IMapper _mapper;
         private readonly UserRepository _userRepository;
         private readonly AuthHelper _authHelper;
+        private readonly ACService _acService;
 
-        public UserController(IMapper mapper, OfficeDbContext dbContext, AuthHelper authHelper)
+        public UserController(IMapper mapper, OfficeDbContext dbContext, AuthHelper authHelper, ACService acService)
         {
             _mapper = mapper;
             _userRepository = new UserRepository(dbContext, mapper, authHelper);
             _authHelper = authHelper;
+            _acService = acService;
         }
 
         [Authorize]
@@ -61,6 +63,12 @@ namespace OfficeCommunicatorAPI.Controllers
             if(!_authHelper.IsEmail(userDto.Email)) return BadRequest("Invalid email");
             if(_authHelper.IsEmail(userDto.UniqueName)) return BadRequest("Invalid nickname");
             if(userDto.Password.Length < 8) return BadRequest("Password must be at least 8 characters long");
+
+            (userDto.AzureIdentity, userDto.AzureToken) = await _acService.CreateUserAsync();
+            Console.WriteLine($"Identity {userDto.AzureIdentity}");
+            Console.WriteLine($"Token {userDto.AzureToken}");
+
+
             User user = await _userRepository.AddAsync(userDto);
             if (user.Id <= 0) return BadRequest("Failed to add user");
             

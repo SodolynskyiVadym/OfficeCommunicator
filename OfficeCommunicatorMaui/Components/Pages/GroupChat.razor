@@ -2,15 +2,16 @@
 @inject ChatApiService ChatApiService
 
 <h1>@Group.Name</h1>
+<button onclick="() => CallGroup()">Call</button>
 
 @foreach (var message in Group.Chat.Messages)
 {
-		<h4>@message.Content</h4>
-		@foreach(var file in message.Documents)
-		{
-			<h3 style="cursor: pointer" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)">@file.Name</h3>
+	<h4>@message.Content</h4>
+	@foreach(var file in message.Documents)
+	{
+		<h3 style="cursor: pointer" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)">@file.Name</h3>
 
-		}
+	}
 }
 
 <input type="text" @bind="Message" />
@@ -20,8 +21,8 @@
 
 @code {
 
-    [Parameter]
-    public Group Group { get; set; }
+	[Parameter]
+	public Group Group { get; set; }
 
 	[Parameter]
 	public int UserId { get; set; }
@@ -31,6 +32,9 @@
 
 	[Parameter]
 	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
+
+	[Parameter]
+	public EventCallback<int> OnCallGroup { get; set; }
 
 	private string Message { get; set; } = string.Empty;
 	private string inputFileKey { get; set; } = Guid.NewGuid().ToString();
@@ -51,7 +55,7 @@
 				{
 					Name = file.Name,
 					UniqueIdentifier = string.Empty
-					
+
 				});
 		}
 		Group.Chat.Messages.Add(new Message()
@@ -81,5 +85,11 @@
 			SelectedFiles.Add(file);
 		}
 		inputFileKey = Guid.NewGuid().ToString();
+	}
+
+
+	private async Task CallGroup()
+	{
+		await OnCallGroup.InvokeAsync(Group.ChatId);
 	}
 }

@@ -1,0 +1,13 @@
+﻿<div>
+	<p>@Call.UserName</p>
+	<button @onclick="() => OnCancel.InvokeAsync(Call)">Cancel</button>
+</div>
+
+
+@code {
+	[Parameter]
+	public CallInfo Call { get; set; }
+
+	[Parameter]
+	public EventCallback<CallInfo> OnCancel { get; set; }
+}

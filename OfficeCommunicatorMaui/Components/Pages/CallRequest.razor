@@ -1,0 +1,35 @@
+﻿<div>
+	@if (!string.IsNullOrEmpty(Call.ZoomUrl))
+	{
+		<p>@Call.GroupName</p>
+	}
+	else
+	{
+		<p>@Call.UserName</p>
+		<p>@Call.UniqueName</p>	
+	}
+	<button class="btn btn-primary" @onclick="() => AcceptCall()">Accept</button>
+	<button class="btn btn-danger" @onclick="() => RejectCall()">Decline</button>
+</div>
+
+@code {
+	[Parameter]
+	public CallInfo Call { get; set; }
+
+	[Parameter]
+	public EventCallback<CallInfo> OnAccept { get; set; }
+
+	[Parameter]
+	public EventCallback<CallInfo> OnReject { get; set; }
+
+	private async Task AcceptCall()
+	{
+		if (!string.IsNullOrEmpty(Call.ZoomUrl)) await OnAccept.InvokeAsync(Call);
+		else await OnAccept.InvokeAsync(Call);
+	}
+
+	private async Task RejectCall()
+	{
+		await OnReject.InvokeAsync(Call);
+	}
+}

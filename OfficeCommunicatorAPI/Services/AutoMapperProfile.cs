@@ -12,6 +12,9 @@ namespace OfficeCommunicatorAPI.Services
             
             CreateMap<(UserDto, byte[][] passwordData), User>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Item1.Name))
+                .ForMember(dest => dest.AzureIdentity, opt => opt.MapFrom(src => src.Item1.AzureIdentity))
+                .ForMember(dest => dest.AzureToken, opt => opt.MapFrom(src => src.Item1.AzureToken))
+                .ForMember(dest => dest.ZoomUrl, opt => opt.MapFrom(src => src.Item1.ZoomUrl))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Item1.Email))
                 .ForMember(dest => dest.UniqueName, opt => opt.MapFrom(src => src.Item1.UniqueName))
                 .ForMember(dest => dest.PasswordHash, opt => opt.MapFrom(src => src.passwordData[0]))

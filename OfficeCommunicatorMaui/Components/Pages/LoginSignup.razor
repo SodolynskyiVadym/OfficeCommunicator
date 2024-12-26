@@ -1,32 +1,60 @@
-﻿@page "/login"
-@using OfficeCommunicatorMaui.Services.API
-@inject AuthApiService AuthApiService
+﻿@inject AuthApiService AuthApiService
 
-<input type="text" placeholder="Username" @bind="email"/>
-<input type="password" placeholder="Password" @bind="password"/>
-<p>@errorMessage</p>
-<p>@token</p>
-<button @onclick="LoginType">Login</button>
+<div class="form">
+    @if (isLogin)
+    {
+        <input type="text" placeholder="Username" @bind="email" />
+        <input type="password" placeholder="Password" @bind="password" />
+        <p>@errorMessage</p>
+        <p>@token</p>
+        <button @onclick="Login">Login</button>
+    }
+    else
+    {
+        <input type="text" placeholder="Name" @bind="userName" />
+        <input type="text" placeholder="Unique name" @bind="uniqueName" />
+        <input type="text" placeholder="Email" @bind="email" />
+        <input type="text" placeholder="Your zoom url" @bind="zoomUrl" />
+        <input type="password" placeholder="Password" @bind="password" />
+        <button @onclick="SignUp">Signup</button>
+    }
+
+    <p>@errorMessage</p>
+    <p>@token</p>
+    <button @onclick="ToggleLoginSignup">Toggle</button>
+</div>
+
+
 
 @code {
+    private bool isLogin { get; set; } = true;
     private string email { get; set; } = string.Empty;
     private string password { get; set; } = string.Empty;
+    private string userName { get; set; } = string.Empty;
+    private string uniqueName { get; set; } = string.Empty;
+    private string zoomUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnLogin { get; set; }
+
     private string? token { get; set; } = string.Empty; 
     private string errorMessage { get; set; } = string.Empty;
 
-    private async Task LoginType()
+
+    private async Task SignUp()
     {
-        try
-        {
-            token = await AuthApiService.LoginAsync(email, password);
-            Console.WriteLine(token);
-            // Handle successful login, e.g., store token, navigate to another page
-        }
-        catch (Exception ex)
-        {
-			errorMessage = ex.Message;
-            // Handle login error
-            Console.WriteLine($"Login failed: {ex.Message}");
-        }
+        token = await AuthApiService.SignUp(userName, email, uniqueName, zoomUrl, password);
+        if (token != null) await OnLogin.InvokeAsync(token);
+    }
+
+    private async Task Login()
+    {
+        token = await AuthApiService.LoginAsync(email, password);
+        if(token != null) await OnLogin.InvokeAsync(token);
+    }
+
+    private void ToggleLoginSignup()
+    {
+        isLogin = !isLogin;
     }
 }
