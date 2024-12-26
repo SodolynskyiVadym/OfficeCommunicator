@@ -5,7 +5,9 @@ VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeCommunicatorAPI", "OfficeCommunicatorAPI\OfficeCommunicatorAPI.csproj", "{276C424F-B8BB-4114-BE83-44D4A7797857}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeCommunicatorMaui", "OfficeCommunicatorMaui\OfficeCommunicatorMaui.csproj", "{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeCommunicatorMaui", "OfficeCommunicatorMaui\OfficeCommunicatorMaui.csproj", "{62694A5A-F360-4132-8B13-5CF746E13CAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{D78A669F-A338-408E-944F-B21B145D95B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,12 +19,16 @@ Global
 		{276C424F-B8BB-4114-BE83-44D4A7797857}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{276C424F-B8BB-4114-BE83-44D4A7797857}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{276C424F-B8BB-4114-BE83-44D4A7797857}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2CBA4733-7A0D-48AC-9BC2-8FA21C1C557C}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{62694A5A-F360-4132-8B13-5CF746E13CAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62694A5A-F360-4132-8B13-5CF746E13CAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62694A5A-F360-4132-8B13-5CF746E13CAC}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{62694A5A-F360-4132-8B13-5CF746E13CAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62694A5A-F360-4132-8B13-5CF746E13CAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62694A5A-F360-4132-8B13-5CF746E13CAC}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{D78A669F-A338-408E-944F-B21B145D95B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D78A669F-A338-408E-944F-B21B145D95B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D78A669F-A338-408E-944F-B21B145D95B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D78A669F-A338-408E-944F-B21B145D95B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

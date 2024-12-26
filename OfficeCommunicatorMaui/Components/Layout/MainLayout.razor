@@ -24,10 +24,7 @@ else
             isAuth = false;
             SecureStorageService.RemoveToken();
         }
-        else
-        {
-            isAuth = true;
-        }
+        else isAuth = true;
     }
 
     public void Logout()

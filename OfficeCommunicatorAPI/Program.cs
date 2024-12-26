@@ -72,6 +72,11 @@ builder.Services.AddCors(options =>
         policyBuilder.AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader();
+
+        policyBuilder.WithOrigins("https://0.0.0.0")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -79,8 +84,17 @@ builder.Services.AddCors(o =>
 {
     o.AddPolicy("MyPolicy", p => p
         .WithOrigins("http://localhost:4200")
-        .AllowAnyHeader()
-        .AllowCredentials());
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+        .WithOrigins("https://0.0.0.0")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials()
+        .WithOrigins("https://10.0.2.15")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

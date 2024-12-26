@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="OfficeCommunicatorMaui.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <script src="https://unpkg.com/@azure/communication-common@latest/dist/communication-common.min.js"></script>
+    <script src="https://unpkg.com/@azure/communication-calling@latest/dist/communication-calling.min.js"></script>
+    <script src="https://unpkg.com/@azure/logger@latest/dist/logger.min.js"></script>
 </head>
 
 <body>
@@ -24,14 +27,4 @@
 </body>
 
 </html>
-
-<script>
-    window.blazorDownloadFile = (fileName, contentType, base64Data) => {
-        const link = document.createElement("a");
-        link.download = fileName;
-        link.href = `data:${contentType};base64,${base64Data}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-</script>
+<script src="download.js"></script>

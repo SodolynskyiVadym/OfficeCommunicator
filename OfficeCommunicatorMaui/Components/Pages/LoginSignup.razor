@@ -1,0 +1,32 @@
+﻿@page "/login"
+@using OfficeCommunicatorMaui.Services.API
+@inject AuthApiService AuthApiService
+
+<input type="text" placeholder="Username" @bind="email"/>
+<input type="password" placeholder="Password" @bind="password"/>
+<p>@errorMessage</p>
+<p>@token</p>
+<button @onclick="LoginType">Login</button>
+
+@code {
+    private string email { get; set; } = string.Empty;
+    private string password { get; set; } = string.Empty;
+    private string? token { get; set; } = string.Empty; 
+    private string errorMessage { get; set; } = string.Empty;
+
+    private async Task LoginType()
+    {
+        try
+        {
+            token = await AuthApiService.LoginAsync(email, password);
+            Console.WriteLine(token);
+            // Handle successful login, e.g., store token, navigate to another page
+        }
+        catch (Exception ex)
+        {
+			errorMessage = ex.Message;
+            // Handle login error
+            Console.WriteLine($"Login failed: {ex.Message}");
+        }
+    }
+}

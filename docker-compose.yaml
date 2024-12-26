@@ -44,3 +44,12 @@ services:
       - "10000:10000"
       - "10001:10001"
       - "10002:10002"
+
+  call-service:
+    image: office_communicator_call_service
+    container_name: call-service
+    build:
+      context: ./call-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
