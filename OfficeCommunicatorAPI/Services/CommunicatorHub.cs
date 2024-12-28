@@ -113,33 +113,27 @@ public class CommunicatorHub : Hub
     }
 
 
-    public async Task RemoveMessage(int communicationId, string communication, int messageId)
+
+    [Authorize]
+    public async Task UpdateMessage(Message message)
     {
-        if(!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
-        
-        Message? message = await _messageRepository.GetByIdAsync(messageId);
-        if (message == null || message.UserId != userId) throw new ArgumentException("Message not found or you aren't the author");
+        if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
+        if (userId != message.UserId) throw new ArgumentException("You aren't the author of the message");
 
-        string hubGroupName;
-        if (communication == "group")
-        {
-            Group? group = await _groupRepository.GetByIdAsync(communicationId);
-            if (group == null) throw new ArgumentException("Group not found");
-            hubGroupName = GeneratorHubGroupName.GenerateChatName(group.ChatId);
-        }else if (communication == "contact")
-        {
-            Contact? contact = await _contactRepository.GetByIdAsync(communicationId);
-            if (contact == null) throw new ArgumentException("Contact not found");
-            hubGroupName = GeneratorHubGroupName.GenerateChatName(contact.ChatId);
-        }else throw new ArgumentException("Invalid communication type");
-
-
-        bool result = await _messageRepository.RemoveAsync(messageId, userId);
-        if (!result) throw new Exception("Message not removed");
-        
-        await Clients.OthersInGroup(hubGroupName).SendAsync("RemoveMessage", message);
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(message.ChatId)).SendAsync("OnUpdateMessage", message);
     }
 
+
+    public async Task RemoveMessage(int chatId, int messageId)
+    {
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnRemoveMessage", chatId, messageId);
+    }
+
+
+    public async Task RemoveDocument(int documentId, int messageId, int chatId)
+    {
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnDeleteDocument", documentId, messageId, chatId);
+    }
 
     public async Task CallUser(int userId, int callerUserId)
     {

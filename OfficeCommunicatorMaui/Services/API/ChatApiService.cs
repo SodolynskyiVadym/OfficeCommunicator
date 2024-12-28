@@ -54,31 +54,6 @@ namespace OfficeCommunicatorMaui.Services.API
             }
         }
 
-
-        //public async Task<bool> UploadFile(IBrowserFile file, string token)
-        //{
-        //    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        //    if (file == null) throw new Exception("File is null");
-
-        //    var content = new MultipartFormDataContent();
-        //    var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // Limit to 10 MB
-        //    var fileContent = new StreamContent(stream);
-        //    content.Add(fileContent, "file", file.Name);
-
-        //    var response = await _httpClient.PostAsync(_url + "/updload-file", content);
-
-
-        //    if (response.IsSuccessStatusCode)
-        //    {
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        return false;
-        //    }
-        //}
-
         public async Task<Message?> CreateMessageAsync(MessageStorageDto message, List<IBrowserFile> files, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -95,7 +70,6 @@ namespace OfficeCommunicatorMaui.Services.API
             }
 
             var response = await _httpClient.PostAsync(_url + "/create-message", content);
-            //response.
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadFromJsonAsync<Message>();
@@ -106,18 +80,38 @@ namespace OfficeCommunicatorMaui.Services.API
             }
         }
 
+
+        public async Task<Message?> UpdateMessageAsync(MessageStorageDto message, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.PostAsync(_url + "/update-message", JsonRequestConvert.ConvertToJsonRequest(message));
+            if (response.IsSuccessStatusCode) return await response.Content.ReadFromJsonAsync<Message>();
+            else return null;
+        }
+
+
+        public async Task<bool> DeleteMessageAsync(int messageId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.DeleteAsync(_url + $"/delete-message/{messageId}");
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteDocumentAsync(int documentId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.DeleteAsync(_url + $"/delete-document/{documentId}");
+            if(!response.IsSuccessStatusCode) return false;
+            return await response.Content.ReadFromJsonAsync<bool>();
+        }
+
+
+
         public async Task<DownloadFileResponseDto?> DownLoadFileAsync(string fileName, int messageId, int documentId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var response = await _httpClient.GetAsync(_url + $"/download/{messageId}/{documentId}");
-
-            //if (response.IsSuccessStatusCode)
-            //{
-            //    var stream = await response.Content.ReadAsStreamAsync();
-            //    var fileName = response.Content.Headers.ContentDisposition?.FileName;
-            //    var contentType = response.Content.Headers.ContentType?.MediaType;
-            //    await _fileService.SaveFileAsync(stream, fileName, contentType);
-            //}
 
             if (response.IsSuccessStatusCode)
             {

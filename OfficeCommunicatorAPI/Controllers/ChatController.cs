@@ -93,12 +93,8 @@ public class ChatController : ControllerBase
     [HttpPost("create-message")]
     public async Task<IActionResult> CreateMessage([FromForm]string messageDtoJson, [FromForm]List<IFormFile> files)
     {
-        Console.WriteLine($"Count files {files.Count}");
         MessageDto? messageDto = JsonConvert.DeserializeObject<MessageDto>(messageDtoJson);
-
-
         if (messageDto == null) return BadRequest("Invalid message");
-        Console.WriteLine("From json to class work");
 
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
         messageDto.UserId = userId;
@@ -108,10 +104,8 @@ public class ChatController : ControllerBase
         if(messageDto.CommunicationType.Equals(nameof(Group))) message = await _messageRepository.AddAsync(messageDto, _groupChecker);
         else if(messageDto.CommunicationType.Equals(nameof(Contact))) message = await _messageRepository.AddAsync(messageDto, _contactChecker);
         else return BadRequest("Invalid communication type");
-        Console.WriteLine("Add work");
 
         if (message == null) return BadRequest("Invalid message");
-        Console.WriteLine("Message not nulll");
 
         string uniqueFileName;
         List<Document> documents = new();
@@ -124,6 +118,54 @@ public class ChatController : ControllerBase
         documents = await _documentRepository.AddRangeAsync(documents);
         message.Documents = documents;
         return Ok(message);
+    }
+
+
+    [Authorize]
+    [HttpPost("update-message")]
+    public async Task<IActionResult> UpdateMessageAsync(MessageUpdateDto messageDto)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+
+        Message? message = await _messageRepository.UpdateAsync(messageDto);
+        if (message == null) return BadRequest("Message wasn't updated");
+
+
+        return Ok(message);
+    }
+
+
+    [Authorize]
+    [HttpDelete("delete-message/{messageId}")]
+    public async Task<IActionResult> DeleteMessage(int messageId)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+        Message? message = await _messageRepository.RemoveAsync(messageId, userId);
+        if (message == null) return BadRequest("Message wasn't deleted");
+
+        foreach (var document in message.Documents) await _fileService.DeleteFileAsync(document.UniqueIdentifier);
+        return Ok(true);
+    }
+
+
+    [Authorize]
+    [HttpDelete("delete-document/{documentId}")]
+    public async Task<IActionResult> DeleteDocument(int documentId)
+    {
+        Console.WriteLine($"Document id for deleting {documentId}");
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+
+        Document? document = await _messageRepository.GetDocumentByIdAsync(documentId);
+        if (document == null) return BadRequest("Document wasn't deleted");
+
+        Message? message = await _messageRepository.GetByIdAsync(document.MessageId);
+        if (message == null) return BadRequest("Message wasn't found");
+        if(message.UserId != userId) return BadRequest("You aren't the author of the message");
+
+
+        bool result = await _messageRepository.RemoveDocumentAsync(documentId);
+        if(result) await _fileService.DeleteFileAsync(document.UniqueIdentifier);
+        return Ok(result);
     }
 
 

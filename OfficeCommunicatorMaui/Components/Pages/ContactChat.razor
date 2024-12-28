@@ -1,27 +1,69 @@
 ﻿@inject ContactApiService ContactApiService
 @inject ChatApiService ChatApiService
 
-<h1>@Contact.AssociatedUser.Name</h1>
-<button @onclick="() => CallUser()">Call</button>
 
-@foreach(var message in Contact.Chat.Messages)
-{
-	<h4>@message.Content</h4>
-	@foreach (var file in message.Documents)
-	{
-		<h3 style="cursor: pointer" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)">@file.Name</h3>
+<div class="chat-container">
+	<div style="display: flex; justify-content: space-between; align-items: center;">
+		<h1 style="margin: 0;">@Contact.AssociatedUser.Name</h1>
+		<div>
+			<img src="images/phone-call.png" @onclick="() => CallUser()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
+			<img src="images/exit.png" @onclick="() => CallUser()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
+		</div>
+	</div>
 
-	}
-}
+	<div class="messages-container">
+		@foreach (var message in Contact.Chat.Messages)
+		{
+			<div  class="message-wrapper @(message.UserId == UserId ? "my-message" : "other-message")">
+				<div style="display: flex">
+					@if (message.UserId == UserId)
+					{
+						<img src="images/delete.png" class="image-action" @onclick="() => DeleteMessage(message.Id)"/>
+						<img src="images/pencil.png" class="image-action" @onclick="() => ActivateUpdateMessage(message.Id)" />
+					}
+					<div class="message-content">
+						<p>@message.Content</p>
+						@foreach (var file in message.Documents)
+						{
+							<div style="display: flex; align-items: center;">
+								<p class="file-link" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)" style="padding-right: 10px;">
+									@file.Name
+								</p>
+								@if(message.UserId == UserId)
+								{
+									<img src="images/delete.png" class="image-action" @onclick="() => DeleteDocument(file.Id, message.Id)" />
 
-<input type="text" @bind="Message" />
-<button @onclick="SendMessage">Send</button>
+								}
+							</div>
+						}
+					</div>
+				</div>
 
+			</div>
+		}
+	</div>
 
-@for (int i = 0; i < countInputsFiles; i++)
-{
-	<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
-}
+	<div class="input-container">
+		<textarea type="text" @bind="content" class="message-input" placeholder="Type your message..." />
+		@if (isUpdating)
+		{
+			<button class="send-button" @onclick="() => UpdateMessage()">Update</button>
+			<button class="send-button" @onclick="() => CancelUpdating()">Cancel</button>
+
+		}
+		else
+		{
+			<button class="send-button" @onclick="SendMessage">Send</button>
+			<div class="file-inputs">
+				@for (int i = 0; i < countInputsFiles; i++)
+				{
+					<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
+				}
+			</div>
+		}
+
+	</div>
+</div>
 
 @code {
 	[Parameter]
@@ -40,10 +82,21 @@
 	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
 
 	[Parameter]
+	public EventCallback<MessageStorageDto> OnUpdateMessage { get; set; }
+
+	[Parameter]
+	public EventCallback<DocumentMessageChatId> OnDeleteMessage { get; set; }
+
+	[Parameter]
+	public EventCallback<DocumentMessageChatId> OnDeleteDocument { get; set; }
+
+	[Parameter]
 	public EventCallback<int> OnCallUser { get; set; }
 
-	private string Message { get; set; } = string.Empty;
+	private string content { get; set; } = string.Empty;
 	private int countInputsFiles { get; set; } = 1;
+	private bool isUpdating { get; set; } = false;
+	private int updatingMessageId { get; set; } = 0;
 
 	private List<IBrowserFile> SelectedFiles { get; set; } = new();
 
@@ -72,15 +125,15 @@
 		}
 		Contact.Chat.Messages.Add(new Message()
 		{
-			Content = Message,
+			Content = content,
 			UserId = UserId,
 			ChatId = Contact.ChatId,
 			Date = DateTime.Now,
 			Documents = documents
 		});
-		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Contact), Contact.ChatId, Message, SelectedFiles));
+		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Contact), Contact.ChatId, content, SelectedFiles));
 		SelectedFiles.Clear();
-		Message = string.Empty;
+		content = string.Empty;
 	}
 
 	private async Task DownloadFile(int fileId, int messageId, string fileName)
@@ -102,5 +155,61 @@
 	private async Task CallUser()
 	{
 		await OnCallUser.InvokeAsync(AssociatedUserId);
+	}
+
+	private async Task UpdateMessage()
+	{
+		Message? message = Contact.Chat.Messages.FirstOrDefault(m => m.Id == updatingMessageId);
+		if (message != null)
+		{
+			await OnUpdateMessage.InvokeAsync(new MessageStorageDto() { Content = content, ChatId = Contact.ChatId, Id = updatingMessageId, UserId = UserId });
+
+			Contact.Chat.Messages.Remove(message);
+			message.Content = content;
+			Contact.Chat.Messages.Add(message);
+			Contact.Chat.Messages = Contact.Chat.Messages.OrderBy(m => m.Date).ToList();
+		}
+
+		content = string.Empty;
+		updatingMessageId = 0;
+		isUpdating = false;
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async Task DeleteMessage(int messageId)
+	{
+		Message? message = Contact.Chat.Messages.FirstOrDefault(m => m.Id == messageId);
+		if (message == null) return;
+		Contact.Chat.Messages.Remove(message);
+		await OnDeleteMessage.InvokeAsync(new DocumentMessageChatId(0, messageId, Contact.ChatId));
+
+	}
+
+	private async Task DeleteDocument(int documentId, int messageId)
+	{
+		await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Contact.ChatId));
+
+		var message = Contact.Chat.Messages.FirstOrDefault(m => m.Documents.Any(d => d.Id == documentId));
+		var document = message.Documents.FirstOrDefault(d => d.Id == documentId);
+		message.Documents.Remove(document);
+		await InvokeAsync(StateHasChanged);
+	}
+
+
+	private async Task ActivateUpdateMessage(int messageId)
+	{
+		content = Contact.Chat.Messages.FirstOrDefault(m => m.Id == messageId).Content;
+		updatingMessageId = messageId;
+		isUpdating = true;
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async Task CancelUpdating()
+	{
+		content = string.Empty;
+		updatingMessageId = 0;
+		isUpdating = false;
+		await InvokeAsync(StateHasChanged);
 	}
 }

@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using System.Linq;
+using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using OfficeCommunicatorAPI.DTO;
 using OfficeCommunicatorAPI.Models;
 using OfficeCommunicatorAPI.Services;
@@ -27,14 +29,9 @@ public class MessageRepository
         return await _dbContext.Messages.FindAsync(id);
     }
 
-    public Task<Message?> GetByIdWithIncludeAsync(int id)
+    public async Task<Message?> GetByIdWithIncludeAsync(int id)
     {
-        throw new NotImplementedException();
-    }
-
-    public Task<List<Message>> GetAllAsync()
-    {
-        throw new NotImplementedException();
+        return await _dbContext.Messages.Include(m => m.Documents).FirstOrDefaultAsync(m => m.Id == id);
     }
 
     public async Task<Message?> AddAsync(MessageDto messageDto, IChecker checker)
@@ -47,26 +44,39 @@ public class MessageRepository
         return message;
     }
 
-    public Task<bool> UpdateAsync(MessageUpdateDto entity)
+    public async Task<Message?> UpdateAsync(MessageUpdateDto entity)
     {
-        throw new NotImplementedException();
+        Message? message = await _dbContext.Messages.Include(m => m.Documents).FirstOrDefaultAsync(m => m.Id == entity.Id);
+        if (message == null) return message;
+        message.Content = entity.Content;
+        return await _dbContext.SaveChangesAsync() > 0 ? message : null;
     }
 
 
-    public async Task<bool> RemoveAsync(int messageId, int userId)
+    public async Task<Message?> RemoveAsync(int messageId, int userId)
     {
-        Message? message = await _dbContext.Messages.FindAsync(messageId);
-        if (message == null) return false;
+        Message? message = await _dbContext.Messages.Include(m => m.Documents).FirstOrDefaultAsync(m => m.Id == messageId);
+        if (message == null) return message;
         
-        if (message.UserId != userId) return false;
+        if (message.UserId != userId) return null;
         
         _dbContext.Messages.Remove(message);
-        return await _dbContext.SaveChangesAsync() > 0;
+        ;
+
+        return await _dbContext.SaveChangesAsync() > 0 ? message : null;
     }
 
 
-    public Task<bool> DeleteAsync(int id)
+    public async Task<Document?> GetDocumentByIdAsync(int documentId)
     {
-        throw new NotImplementedException();
+        return await _dbContext.Documents.FindAsync(documentId);
+    }
+
+    public async Task<bool> RemoveDocumentAsync(int documentId)
+    {
+        Document? document = await _dbContext.Documents.FindAsync(documentId);
+        if (document == null) return false;
+        _dbContext.Documents.Remove(document);
+        return await _dbContext.SaveChangesAsync() > 0;
     }
 }

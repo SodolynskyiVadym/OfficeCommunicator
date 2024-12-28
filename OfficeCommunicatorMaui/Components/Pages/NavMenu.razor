@@ -1,27 +1,15 @@
 ﻿@inject AuthApiService AuthApiService
 
-@* <div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Office Communicator</a>
-    </div>
-</div> *@
-
-<div class="nav-scrollable w-100" onclick="document.querySelector('.navbar-toggler').click()">
     <div class="container-lg">
-        <nav class="flex-column">
+        <nav class="flex-column"> 
 
             @foreach (var group in Groups)
             {
-      @*           <li class="nav-item">
+                <li class="nav-item">
                     <a class="nav-link text-white" href="#" @onclick="() => OnGroupSelected.InvokeAsync(group)">
                         @group.Name
                     </a>
-                </li> *@
-                <div class="nav-item px-4" @onclick="() => OnGroupSelected.InvokeAsync(group)">
-                    <NavLink class="nav-link" href="">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @group.Name
-                    </NavLink>
-                </div>
+                </li>
 
             }
             @foreach (var contact in Contacts)
@@ -32,9 +20,8 @@
                     </a>
                 </li>
             }
-        </nav>
-    </div>
-</div>
+         </nav>
+     </div>
 
 
 @code{
