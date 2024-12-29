@@ -28,14 +28,14 @@ namespace OfficeCommunicatorMaui.Services
 
         public async Task<string?> GetTokenAsync()
         {
-            //return random switch
-            //{
-            //    1 => jack,
-            //    2 => john,
-            //    _ => null
-            //};
+            return random switch
+            {
+                1 => jack,
+                2 => john,
+                _ => null
+            };
 
-            return john;
+            //return john;
         }
 
 

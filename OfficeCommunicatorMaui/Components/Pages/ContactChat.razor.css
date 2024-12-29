@@ -42,7 +42,7 @@
 }
 
 .message-content {
-    max-width: 70%;
+    max-width: 600px;
     padding: 10px 15px;
     border-radius: 10px;
     background-color: #007bff;

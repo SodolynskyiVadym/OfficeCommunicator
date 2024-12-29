@@ -1,0 +1,17 @@
+﻿<h3>CreateGroupPage</h3>
+<input type="text" @bind="Name" placeholder="Name" />
+<input type="text" @bind="UniqueIdentifier" placeholder="Unique Identifier" />
+<button @onclick="CreateGroup">Create</button>
+
+@code {
+	[Parameter]
+	public EventCallback<GroupCreateDto> OnCreateGroup { get; set; }
+
+	public string Name { get; set; } = string.Empty;
+	public string UniqueIdentifier { get; set; } = string.Empty;
+
+	private async Task CreateGroup()
+	{
+		await OnCreateGroup.InvokeAsync(new GroupCreateDto(Name, UniqueIdentifier));
+	}
+}

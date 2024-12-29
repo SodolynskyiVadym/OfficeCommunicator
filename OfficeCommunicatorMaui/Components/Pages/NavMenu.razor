@@ -7,7 +7,7 @@
                 <img src="images/group.png" />
                 <div>@group.Name</div>
                 <div>@group.UnviewedMessages</div>
-					<div>@DateTime.Now.ToString("HH:mm")</div>
+				<div>@DateTime.Now.ToString("HH:mm")</div>
             </div>
     }
     @foreach (var contact in FilteredContacts)
@@ -16,7 +16,7 @@
                 <img src="images/contact.png" />
                 <div>@contact.AssociatedUser.Name</div>
                 <div>@contact.UnviewedMessages</div>
-                                        <div>@DateTime.Now.ToString("HH:mm")</div>
+                <div>@DateTime.Now.ToString("HH:mm")</div>
             </div>
     }
 </div>

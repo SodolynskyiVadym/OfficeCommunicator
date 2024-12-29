@@ -24,6 +24,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton(sp => new AuthApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new ContactApiService(serverUrl, httpClient));
+        builder.Services.AddSingleton(sp => new GroupApiService(serverUrl, httpClient));
         builder.Services.AddSingleton(sp => new ChatApiService(serverUrl, httpClient));
 
         builder.Services.AddSingleton(sp => dbContext);
@@ -31,6 +32,8 @@ public static class MauiProgram
         builder.Services.AddSingleton(sp => new MessageRepository(dbContext));
 
         builder.Services.AddSingleton(sp => new SecureStorageService(random.Next(1, 3)));
+
+        builder.Services.AddBlazorBootstrap();
 
 
 

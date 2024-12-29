@@ -109,6 +109,8 @@ public class CommunicatorHub : Hub
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId) || userId != message.UserId) return;
         if ((!await _groupChecker.CheckPermissionUser(userId, message.ChatId)) && (!await _contactChecker.CheckPermissionUser(userId, message.ChatId))) return;
 
+
+        Console.WriteLine($"Messege was sent to users with chat id {message.ChatId} and content {message.Content}");
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(message.ChatId)).SendAsync("ReceiveMessage", message);
     }
 
@@ -130,7 +132,7 @@ public class CommunicatorHub : Hub
     }
 
 
-    public async Task RemoveDocument(int documentId, int messageId, int chatId)
+    public async Task DeleteDocument(int documentId, int messageId, int chatId)
     {
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnDeleteDocument", documentId, messageId, chatId);
     }

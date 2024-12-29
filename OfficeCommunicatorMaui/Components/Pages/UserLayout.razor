@@ -2,48 +2,66 @@
 @inject NavigationManager NavigationManager
 @inject AuthApiService AuthApiService
 @inject ChatApiService ChatApiService
+@inject GroupApiService GroupApiService
 @inject MessageRepository MessageRepository
 @inject SecureStorageService SecureStorageService
 @inject IJSRuntime JSRuntime
 
 
 
-@if (isCallingRequest)
-{
-    <CallRequest Call="callRequest" OnAccept="AcceptCall" OnReject="RejectCall"></CallRequest>
-}
-@if (isCalling)
-{
-    <CallingPage Call="userCall" OnCancel="CancelCall"></CallingPage>
-}
-
-
-
 @if (user != null)
 {
+    @if (isCallingRequest)
+    {
+        <CallRequest Call="callRequest" OnAccept="AcceptCall" OnReject="RejectCall"></CallRequest>
+    }
+    @if (isCalling)
+    {
+        <CallingPage Call="userCall" OnCancel="CancelCall"></CallingPage>
+    }
+
+    @if (isGroupCreating)
+    {
+        <GroupCreate OnCreateGroup="CreateGroup"></GroupCreate>
+    }
+
     <div style="display: flex;">
-        <div style="width:5%">
-
+        <div style="width:5%; text-align:center; margin-top: 30px;">
+            <img class="img-action" src="images/chat.png" @onclick="OpenChat" />
+            <img class="img-action" src="images/add-user.png" @onclick="OpenAddingContact"/>
+            <img class="img-action" src="images/add-group.png" @onclick="OpenCreatingGroup" />
+            <img class="img-action" src="images/logout.png" @onclick="ExitUserPage" />
         </div>
-        <div style="width:20%">
 
-            <NavMenu Groups="user.Groups" Contacts="user.Contacts" OnGroupSelected="HandleGroupSelected" OnContactSelected="HandleContactSelected" />
-
-        </div>
-        <div style="width:70%; padding-left:5%">
-                    @if (isChatOpened)
+        @if(isGroupCreating)
         {
-            @if (isGroupOpened)
-            {
-                <GroupChat Group="selectedGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
-            }
-            else
-            {
-                <ContactChat Contact="selectedContact" AssociatedUserId="selectedContact.AssociatedUserId" UserId="user.Id"
-                             OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage"
-                             OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
-            }
+            <CreateGroupPage OnCreateGroup="CreateGroup"></CreateGroupPage>
         }
+
+        @if (isChatOpened)
+        {
+            <div style="width:20%; text-align:center">
+                <NavMenu Groups="user.Groups" Contacts="user.Contacts" OnGroupSelected="HandleGroupSelected" OnContactSelected="HandleContactSelected" />
+            </div>
+        }
+
+
+        <div style="width:70%; padding-left:5%">
+            @if (isChatOpened)
+            {
+
+
+                @if (isGroupOpened)
+                {
+                    <GroupChat Group="selectedGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
+                }
+                @if (isContactOpened)
+                {
+                    <ContactChat Contact="selectedContact" AssociatedUserId="selectedContact.AssociatedUserId" UserId="user.Id"
+                    OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage"
+                    OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
+                }
+            }
         </div>
 
     </div>
@@ -55,8 +73,11 @@
     public EventCallback OnLogout { get; set; }
 
 
-    private bool isChatOpened { get; set; }
+    private bool isChatOpened { get; set; } = true;
     private bool isGroupOpened { get; set; }
+    private bool isContactOpened {get;set ; }
+    private bool isGroupCreating { get; set; }
+    private bool isAddingContactOpened { get; set; }
     private bool isCallingRequest { get; set; }
     private bool isCalling { get; set; }
 
@@ -120,12 +141,34 @@
 
         hubConnection.On<Message>("ReceiveMessage", async (message) =>
         {
-            Console.Beep();
+    //         if(selectedGroup == null || (selectedGroup.ChatId != message.ChatId))
+    //         {
+    //             Group? group = user.Groups.FirstOrDefault(g => g.ChatId == message.ChatId);
+    //             if (group == null) return;
+
+				// user.Groups.Remove(group);
+				// group.UnviewedMessages++;
+				// user.Groups.Add(group);
+				// await InvokeAsync(StateHasChanged);
+    //         }
+
+    //         if (selectedContact == null || (selectedContact.ChatId != message.ChatId))
+    //         {
+    //             Contact? contact = user.Contacts.FirstOrDefault(g => g.ChatId == message.ChatId);
+    //             if (contact == null) return;
+
+				// user.Contacts.Remove(contact);
+    //             contact.UnviewedMessages++;
+				// user.Contacts.Add(contact);
+    //             await InvokeAsync(StateHasChanged);
+    //         }
+
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
                 selectedGroup.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
             }
+
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
             {
                 selectedContact.Chat.Messages.Add(message);
@@ -160,45 +203,46 @@
 
         hubConnection.On<Message>("OnUpdateMessage", async (message) =>
         {
-            // throw new Exception($"Message id is {message.Id} and new content is {message.Content}");
             if (selectedContact != null && selectedContact.ChatId == message.ChatId)
-               {
-                   Message? messageOld = selectedContact.Chat.Messages.FirstOrDefault(m => m.Id == message.Id);
+            {
+                Message? messageOld = selectedContact.Chat.Messages.FirstOrDefault(m => m.Id == message.Id);
                 if (messageOld != null)
                 {
                     selectedContact.Chat.Messages.Remove(messageOld);
                     selectedContact.Chat.Messages.Add(message);
                     selectedContact.Chat.Messages = selectedContact.Chat.Messages.OrderBy(m => m.Date).ToList();
                     await InvokeAsync(StateHasChanged);
-                 }
-               }
-               else if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
-               {
+                }
+            }
+            else if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
+            {
                 Message? messageOld = selectedGroup.Chat.Messages.FirstOrDefault(m => m.Id == message.Id);
                 if (messageOld != null)
-                   {
-                       selectedGroup.Chat.Messages.Remove(messageOld);
-                       selectedGroup.Chat.Messages.Add(message);
+                {
+                    selectedGroup.Chat.Messages.Remove(messageOld);
+                    selectedGroup.Chat.Messages.Add(message);
                     selectedGroup.Chat.Messages = selectedGroup.Chat.Messages.OrderBy(m => m.Date).ToList();
-                       await InvokeAsync(StateHasChanged);
-                   }
-               }
-         });
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        });
 
 
         hubConnection.On<int, int, int>("OnDeleteDocument", async (documentId, messageId, chatId) =>
         {
+            await JSRuntime.InvokeVoidAsync("printData", documentId, messageId, chatId);
             if (selectedContact != null && selectedContact.ChatId == chatId)
             {
                 Message? message = selectedContact.Chat.Messages.FirstOrDefault(m => m.Id == messageId);
                 if (message != null)
                 {
-					selectedContact.Chat.Messages.Remove(message);
+                    selectedContact.Chat.Messages.Remove(message);
                     message.Documents.RemoveAll(d => d.Id == documentId);
-					selectedContact.Chat.Messages.Add(message);
+                    selectedContact.Chat.Messages.Add(message);
                     await InvokeAsync(StateHasChanged);
                 }
             }
+
             else if (selectedGroup != null && selectedGroup.ChatId == chatId)
             {
                 Message? message = selectedGroup.Chat.Messages.FirstOrDefault(m => m.Id == messageId);
@@ -312,6 +356,7 @@
             await ExitUserPage();
             return;
         }
+		isContactOpened = false;
         isGroupOpened = true;
         isChatOpened = true;
         selectedContact = null;
@@ -331,9 +376,17 @@
             return;
         }
         isGroupOpened = false;
+		isContactOpened = true;
         isChatOpened = true;
         selectedGroup = null;
         await InvokeAsync(StateHasChanged);
+    }
+
+
+    private async Task CreateGroup(GroupCreateDto groupCreate)
+    {
+        Group? group = await GroupApiService.CreateGroupAsync(groupCreate, token);
+        if (group != null) user.Groups.Add(group);
     }
 
 
@@ -343,6 +396,7 @@
         if (messageStorageDto.Id == 0) messageStorageDto = await MessageRepository.AddMessage(messageStorageDto);
 
         Message? message = await ChatApiService.CreateMessageAsync(messageStorageDto, messageStorageDto.Files, token);
+
         await MessageRepository.RemoveMessage(messageStorageDto.Id);
 
         if (hubConnection.State == HubConnectionState.Connected && message != null)
@@ -351,14 +405,20 @@
 
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
-                Message? updatedMessage = selectedGroup.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+                Message? updatedMessage = selectedGroup.Chat.Messages
+                    .Where(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId)
+                    .OrderByDescending(m => m.Date)
+                    .FirstOrDefault();
                 if (updatedMessage != null) selectedGroup.Chat.Messages.Remove(updatedMessage);
                 selectedGroup.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
             }
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
             {
-                Message? updatedMessage = selectedContact.Chat.Messages.FirstOrDefault(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId);
+                Message? updatedMessage = selectedContact.Chat.Messages
+                    .Where(m => m.UserId == message.UserId && m.Content.Equals(message.Content) && m.ChatId == message.ChatId)
+                    .OrderByDescending(m => m.Date)
+                    .FirstOrDefault();
                 if (updatedMessage != null) selectedContact.Chat.Messages.Remove(updatedMessage);
                 selectedContact.Chat.Messages.Add(message);
                 await InvokeAsync(StateHasChanged);
@@ -370,7 +430,7 @@
     private async Task UpdateMessage(MessageStorageDto documentMessageChatId)
     {
         Message? message = await ChatApiService.UpdateMessageAsync(documentMessageChatId, token);
-		if (message != null) await hubConnection.SendAsync("UpdateMessage", message);
+        if (message != null) await hubConnection.SendAsync("UpdateMessage", message);
     }
 
 
@@ -382,8 +442,8 @@
 
     private async Task RemoveDocument(DocumentMessageChatId documentMessageChatId)
     {
-		bool result = await ChatApiService.DeleteDocumentAsync(documentMessageChatId.DocumentId, token);
-		if (result) await hubConnection.SendAsync("DeleteDocument", documentMessageChatId.DocumentId, documentMessageChatId.MessageId, documentMessageChatId.ChatId);
+        bool result = await ChatApiService.DeleteDocumentAsync(documentMessageChatId.DocumentId, token);
+        if (result) await hubConnection.SendAsync("DeleteDocument", documentMessageChatId.DocumentId, documentMessageChatId.MessageId, documentMessageChatId.ChatId);
     }
 
 
@@ -411,7 +471,7 @@
             if (string.IsNullOrEmpty(userName)) return;
             userCall = new CallInfo() { UserId = callerUserId, UserName = userName };
             await hubConnection.SendAsync("CallUser", user.Id, callerUserId);
-			await InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
 
     }
@@ -423,7 +483,7 @@
 
     public async Task AcceptCall(CallInfo call)
     {
-		CloseCallRequest();
+        CloseCallRequest();
         if (!string.IsNullOrEmpty(call.ZoomUrl)) await Launcher.OpenAsync(call.ZoomUrl);
         else
         {
@@ -436,7 +496,7 @@
 
     public async Task RejectCall(CallInfo call)
     {
-		CloseCallRequest();
+        CloseCallRequest();
         if(string.IsNullOrEmpty(call.ZoomUrl)) await hubConnection.SendAsync("RejectCall", user.Id, call.UserId);
         await InvokeAsync(StateHasChanged);
     }
@@ -444,22 +504,46 @@
     public async Task CancelCall(CallInfo call)
     {
         await hubConnection.SendAsync("CancelCall", user.Id, call.UserId);
-		CloseCalling();
+        CloseCalling();
     }
 
 
     public void CloseCallRequest()
     {
         isCallingRequest = false;
-		callRequest = null;
+        callRequest = null;
     }
 
-	public void CloseCalling()
-	{
-		isCalling = false;
-		userCall = null;
-	}
+    public void CloseCalling()
+    {
+        isCalling = false;
+        userCall = null;
+    }
 
+
+    public async Task OpenCreatingGroup()
+    {
+        isAddingContactOpened = false;
+        isChatOpened = false;
+        isGroupCreating = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OpenAddingContact()
+    {
+        isAddingContactOpened = true;
+        isChatOpened = false;
+        isGroupCreating = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OpenChat()
+    {
+        isAddingContactOpened = false;
+        isChatOpened = true;
+        isGroupCreating = false;
+        await InvokeAsync(StateHasChanged);
+    }
 
     public async ValueTask DisposeAsync()
     {

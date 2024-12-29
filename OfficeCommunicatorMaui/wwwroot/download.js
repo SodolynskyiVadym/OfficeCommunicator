@@ -6,3 +6,8 @@ window.blazorDownloadFile = (fileName, contentType, base64Data) => {
     link.click();
     document.body.removeChild(link);
 };
+
+
+window.printData = (documentId, messageId, chatId) => {
+    console.log(`Document ${documentId}, message Id ${messageId}, chat id ${chatId}`);
+};
