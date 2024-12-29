@@ -1,30 +1,27 @@
-﻿@inject AuthApiService AuthApiService
+﻿<input type="text" class="search-field" @bind="SearchText" />
 
-    <div class="container-lg">
-        <nav class="flex-column"> 
+<div class="list">
+    @foreach (var group in FilteredGroups)
+    {
+            <div class="list-item" @onclick="() => OnGroupSelected.InvokeAsync(group)">
+                <img src="images/group.png" />
+                <div>@group.Name</div>
+                <div>@group.UnviewedMessages</div>
+					<div>@DateTime.Now.ToString("HH:mm")</div>
+            </div>
+    }
+    @foreach (var contact in FilteredContacts)
+    {
+            <div class="list-item" @onclick="() => OnContactSelected.InvokeAsync(contact)">
+                <img src="images/contact.png" />
+                <div>@contact.AssociatedUser.Name</div>
+                <div>@contact.UnviewedMessages</div>
+                                        <div>@DateTime.Now.ToString("HH:mm")</div>
+            </div>
+    }
+</div>
 
-            @foreach (var group in Groups)
-            {
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="#" @onclick="() => OnGroupSelected.InvokeAsync(group)">
-                        @group.Name
-                    </a>
-                </li>
-
-            }
-            @foreach (var contact in Contacts)
-            {
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="#" @onclick="() => OnContactSelected.InvokeAsync(contact)">
-                        @contact.AssociatedUser.Name
-                    </a>
-                </li>
-            }
-         </nav>
-     </div>
-
-
-@code{
+@code {
     [Parameter]
     public List<Group> Groups { get; set; } = new List<Group>();
 
@@ -36,4 +33,34 @@
 
     [Parameter]
     public EventCallback<Contact> OnContactSelected { get; set; }
+
+    public List<Group> FilteredGroups { get; set; } = new List<Group>();
+    public List<Contact> FilteredContacts { get; set; } = new List<Contact>();
+
+    protected override Task OnInitializedAsync()
+    {
+        FilteredGroups = Groups;
+        FilteredContacts = Contacts;
+        return Task.CompletedTask;
+    }
+
+    private string _searchText;
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText != value)
+            {
+                _searchText = value;
+                Search();
+            }
+        }
+    }
+
+    private void Search()
+    {
+        FilteredContacts = Contacts.Where(c => c.AssociatedUser.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)).ToList();
+        FilteredGroups = Groups.Where(g => g.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
 }

@@ -6,6 +6,8 @@
 @inject SecureStorageService SecureStorageService
 @inject IJSRuntime JSRuntime
 
+
+
 @if (isCallingRequest)
 {
     <CallRequest Call="callRequest" OnAccept="AcceptCall" OnReject="RejectCall"></CallRequest>
@@ -17,29 +19,36 @@
 
 
 
-<div class="page">
-    @if(user != null)
-    {
-        <div class="sidebar">
+@if (user != null)
+{
+    <div style="display: flex;">
+        <div style="width:5%">
+
+        </div>
+        <div style="width:20%">
+
             <NavMenu Groups="user.Groups" Contacts="user.Contacts" OnGroupSelected="HandleGroupSelected" OnContactSelected="HandleContactSelected" />
+
+        </div>
+        <div style="width:70%; padding-left:5%">
+                    @if (isChatOpened)
+        {
+            @if (isGroupOpened)
+            {
+                <GroupChat Group="selectedGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
+            }
+            else
+            {
+                <ContactChat Contact="selectedContact" AssociatedUserId="selectedContact.AssociatedUserId" UserId="user.Id"
+                             OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage"
+                             OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
+            }
+        }
         </div>
 
-        <main>
-            @if (isChatOpened)
-            {
-                @if (isGroupOpened)
-                {
-                    <GroupChat Group="selectedGroup" OnCallGroup="CallGroup"  OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
-                }
-                @if (!isGroupOpened)
-                {
-                    <ContactChat Contact="selectedContact" AssociatedUserId="selectedContact.AssociatedUserId" UserId="user.Id"
-                    OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage"  OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
-                }
-            }
-        </main>
-    }
-</div>
+    </div>
+}
+
 
 @code {
     [Parameter]
