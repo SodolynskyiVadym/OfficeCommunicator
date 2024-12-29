@@ -29,6 +29,20 @@ namespace OfficeCommunicatorMaui.Services.API
             }
         }
 
+
+        public async Task<List<User>?> GetUsersAsync()
+        {
+            var response = await _httpClient.GetAsync(_url + "/getAll");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<User>>();
+            }
+            else
+            {
+                throw new Exception("Failed to get users");
+            }
+        }
+
         public async Task<string?> LoginAsync(string username, string password)
         {
             var loginRequest = new { Email = username, Password = password };

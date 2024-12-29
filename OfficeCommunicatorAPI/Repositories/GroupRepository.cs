@@ -36,6 +36,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
     {
         return await _dbContext.Groups
             .Include(g => g.Users)
+            .Include(g => g.Admins)
             .Include(g => g.Chat)
             .ThenInclude(c => c.Messages)
             .ThenInclude(m => m.Documents)
@@ -53,22 +54,18 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         return await _dbContext.Groups.ToListAsync();
     }
 
-    public async Task<Group> AddAsync(GroupDto groupDto)
+    public async Task<Group?> AddAsync(GroupDto groupDto)
     {
         Group group = _mapper.Map<Group>(groupDto);
         User? user = await _dbContext.Users.FindAsync(groupDto.UserAuthorId);
-        if (user == null) throw new Exception("User not found");
+        if (user == null) return null;
 
-        Chat chat = new Chat();
-        await _dbContext.Chats.AddAsync(chat);
-        await _dbContext.SaveChangesAsync();
+        Chat chat = new Chat() { Messages = new List<Message>()};
 
-        group.ChatId = chat.Id;
+        group.Chat = chat;
         group.Admins ??= new List<User>(){user};
         group.Users ??= new List<User>(){user};
 
-        group.Admins.Add(user);
-        group.Users.Add(user);
         await _dbContext.Groups.AddAsync(group);
         await _dbContext.SaveChangesAsync();
         return group;

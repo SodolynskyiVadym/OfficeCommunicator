@@ -62,12 +62,13 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         User? user = await _dbContext.Users.FindAsync(contactDto.UserId);
         if (user == null) throw new Exception("User not found");
 
-        Chat chat = new Chat();
+        Chat chat = new Chat() { Messages = new List<Message>()};
         await _dbContext.Chats.AddAsync(chat);
         await _dbContext.SaveChangesAsync();
         
         Contact contact = _mapper.Map<Contact>(contactDto);
-        contact.ChatId = chat.Id;
+        contact.AssociatedUser = associatedUser;
+        contact.Chat = chat;
         
         await _dbContext.Contacts.AddAsync(contact);
         
@@ -75,7 +76,7 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         {
             UserId = contact.AssociatedUserId,
             AssociatedUserId = contact.UserId,
-            ChatId = contact.ChatId
+            Chat = chat
         };
 
         await _dbContext.Contacts.AddAsync(associatedContact);

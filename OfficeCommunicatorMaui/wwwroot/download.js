@@ -8,6 +8,8 @@ window.blazorDownloadFile = (fileName, contentType, base64Data) => {
 };
 
 
-window.printData = (documentId, messageId, chatId) => {
-    console.log(`Document ${documentId}, message Id ${messageId}, chat id ${chatId}`);
+window.scrollToBottom = (container) => {
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
 };

@@ -30,5 +30,22 @@ namespace OfficeCommunicatorMaui.Services.API
                 throw new Exception($"Failed to get contact: {error}");
             }
         }
+
+
+        public async Task<Models.Contact?> CreateContactAsync(int userId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var body = new { AssociatedUserId = userId };
+            var response = await _httpClient.PostAsync(_url + $"/create-contact", JsonRequestConvert.ConvertToJsonRequest(body));
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<Models.Contact>();
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to create contact: {error}");
+            }
+        }
     }
 }

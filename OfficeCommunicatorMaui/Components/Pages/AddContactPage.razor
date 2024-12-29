@@ -1,0 +1,56 @@
+﻿<div class="add-contact">
+    <h3>Add Contact</h3>
+    <div class="contact-list">
+        <input type="text" placeholder="Enter email or unique name" class="search-bar" @bind="SearchText" />
+
+        @foreach (var user in FilteredUsers)
+        {
+            <div class="list-item">
+                <img src="images/contact.png" alt="Contact Image" class="contact-image" />
+                <div class="contact-details">
+                    <div class="contact-name">@user.Name</div>
+                    <div class="contact-unique">@user.UniqueName</div>
+                    <div class="contact-email">@user.Email</div>
+                </div>
+                <button class="add-button" @onclick="() => OnAddContact.InvokeAsync(user.Id)">Add</button>
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public EventCallback<int> OnAddContact { get; set; }
+
+    [Parameter]
+    public List<User> Users { get; set; }
+
+    public List<User> FilteredUsers { get; set; } = new List<User>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        FilteredUsers = Users;
+    }
+
+    private string _searchText;
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText != value)
+            {
+                _searchText = value;
+                Search();
+            }
+        }
+    }
+
+    private void Search()
+    {
+        FilteredUsers = Users.Where(u => u.UniqueName.Contains(_searchText) || u.Email.Contains(_searchText)).ToList();
+    }
+
+
+}

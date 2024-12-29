@@ -3,6 +3,7 @@
 @inject AuthApiService AuthApiService
 @inject ChatApiService ChatApiService
 @inject GroupApiService GroupApiService
+@inject ContactApiService ContactApiService
 @inject MessageRepository MessageRepository
 @inject SecureStorageService SecureStorageService
 @inject IJSRuntime JSRuntime
@@ -33,11 +34,6 @@
             <img class="img-action" src="images/logout.png" @onclick="ExitUserPage" />
         </div>
 
-        @if(isGroupCreating)
-        {
-            <CreateGroupPage OnCreateGroup="CreateGroup"></CreateGroupPage>
-        }
-
         @if (isChatOpened)
         {
             <div style="width:20%; text-align:center">
@@ -47,10 +43,19 @@
 
 
         <div style="width:70%; padding-left:5%">
+            @if (isGroupCreating)
+            {
+                <CreateGroupPage OnCreateGroup="CreateGroup"></CreateGroupPage>
+            }
+
+
+			@if (isAddingContactOpened)
+			{
+				<AddContactPage Users="users" OnAddContact="CreateContact"></AddContactPage>
+			}
+
             @if (isChatOpened)
             {
-
-
                 @if (isGroupOpened)
                 {
                     <GroupChat Group="selectedGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
@@ -93,6 +98,7 @@
     private string token { get; set; } = string.Empty;
 
     private User user { get; set; }
+    private List<User> users { get; set; } = new List<User>();
     private HubConnection hubConnection { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -141,27 +147,25 @@
 
         hubConnection.On<Message>("ReceiveMessage", async (message) =>
         {
-    //         if(selectedGroup == null || (selectedGroup.ChatId != message.ChatId))
-    //         {
-    //             Group? group = user.Groups.FirstOrDefault(g => g.ChatId == message.ChatId);
-    //             if (group == null) return;
+            if(selectedGroup == null || (selectedGroup.ChatId != message.ChatId))
+            {
+                Group? group = user.Groups.FirstOrDefault(g => g.ChatId == message.ChatId);
+                if (group != null)
+                {
+                    group.UnviewedMessages++;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
 
-				// user.Groups.Remove(group);
-				// group.UnviewedMessages++;
-				// user.Groups.Add(group);
-				// await InvokeAsync(StateHasChanged);
-    //         }
-
-    //         if (selectedContact == null || (selectedContact.ChatId != message.ChatId))
-    //         {
-    //             Contact? contact = user.Contacts.FirstOrDefault(g => g.ChatId == message.ChatId);
-    //             if (contact == null) return;
-
-				// user.Contacts.Remove(contact);
-    //             contact.UnviewedMessages++;
-				// user.Contacts.Add(contact);
-    //             await InvokeAsync(StateHasChanged);
-    //         }
+            if (selectedContact == null || (selectedContact.ChatId != message.ChatId))
+            {
+                Contact? contact = user.Contacts.FirstOrDefault(g => g.ChatId == message.ChatId);
+                if (contact != null)
+                {
+                    contact.UnviewedMessages++;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
 
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
@@ -323,20 +327,6 @@
     }
 
 
-    private async Task<Group?> GetGroup(int groupId)
-    {
-        if (string.IsNullOrEmpty(token)) return null;
-        else return await ChatApiService.GetGroupAsync(groupId, token);
-    }
-
-
-    private async Task<Contact?> GetContact(int contactId)
-    {
-        if (string.IsNullOrEmpty(token)) return null;
-        else return await ChatApiService.GetContactAsync(contactId, token);
-    }
-
-
 
     private async Task ExitUserPage()
     {
@@ -347,16 +337,18 @@
 
     private async Task HandleGroupSelected(Group group)
     {
-        Console.Beep();
         selectedGroupId = group.Id;
         selectedContactId = 0;
-        selectedGroup = await GetGroup(selectedGroupId);
+
+        selectedGroup = await ChatApiService.GetGroupAsync(selectedGroupId, token);
+        group.UnviewedMessages = 0;
+
         if (selectedGroup == null)
         {
             await ExitUserPage();
             return;
         }
-		isContactOpened = false;
+        isContactOpened = false;
         isGroupOpened = true;
         isChatOpened = true;
         selectedContact = null;
@@ -364,19 +356,21 @@
     }
 
 
-    private async void HandleContactSelected(Contact contact)
+    private async Task HandleContactSelected(Contact contact)
     {
-        Console.Beep();
         selectedContactId = contact.Id;
         selectedGroupId = 0;
-        selectedContact = await GetContact(contact.AssociatedUserId);
+
+        selectedContact = await ChatApiService.GetContactAsync(contact.AssociatedUserId, token);
+        contact.UnviewedMessages = 0;
+
         if (selectedContact == null)
         {
             await ExitUserPage();
             return;
         }
         isGroupOpened = false;
-		isContactOpened = true;
+        isContactOpened = true;
         isChatOpened = true;
         selectedGroup = null;
         await InvokeAsync(StateHasChanged);
@@ -386,8 +380,27 @@
     private async Task CreateGroup(GroupCreateDto groupCreate)
     {
         Group? group = await GroupApiService.CreateGroupAsync(groupCreate, token);
-        if (group != null) user.Groups.Add(group);
+        if (group != null)
+        {
+            user.Groups.Add(group);
+            await HandleGroupSelected(group);
+            await OpenChat();
+			await InvokeAsync(StateHasChanged);
+        }
     }
+
+
+	private async Task CreateContact(int userId)
+	{
+        Contact? contact = await ContactApiService.CreateContactAsync(userId, token);
+		if (contact != null)
+		{
+			user.Contacts.Add(contact);
+			await HandleContactSelected(contact);
+			await OpenChat();
+			await InvokeAsync(StateHasChanged);
+		}
+	}
 
 
     private async Task SendMessage(MessageStorageDto messageStorageDto)
@@ -531,6 +544,12 @@
 
     public async Task OpenAddingContact()
     {
+        users = await AuthApiService.GetUsersAsync();
+        if (users == null) return;
+		// User? meUser = users.FirstOrDefault(u => u.Id == this.user.Id);
+		// if (meUser != null) users.Remove(meUser);
+		users.RemoveAll(u => user.Contacts.Any(c => c.AssociatedUserId == u.Id) || u.Id == user.Id);
+
         isAddingContactOpened = true;
         isChatOpened = false;
         isGroupCreating = false;

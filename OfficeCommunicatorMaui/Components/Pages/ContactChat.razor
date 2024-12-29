@@ -1,5 +1,6 @@
 ﻿@inject ContactApiService ContactApiService
 @inject ChatApiService ChatApiService
+@inject IJSRuntime JSRuntime
 
 
 <div class="chat-container">
@@ -11,7 +12,7 @@
 		</div>
 	</div>
 
-	<div class="messages-container">
+	<div class="messages-container" @ref="MessagesContainer">
 		@foreach (var message in Contact.Chat.Messages)
 		{
 			<div  class="message-wrapper @(message.UserId == UserId ? "my-message" : "other-message")">
@@ -93,6 +94,8 @@
 	[Parameter]
 	public EventCallback<int> OnCallUser { get; set; }
 
+	private ElementReference MessagesContainer;
+
 	private string content { get; set; } = string.Empty;
 	private int countInputsFiles { get; set; } = 1;
 	private bool isUpdating { get; set; } = false;
@@ -104,6 +107,19 @@
 	protected override async Task OnInitializedAsync()
 	{
 		Contact.Chat.Messages = Contact.Chat.Messages.OrderBy(m => m.Date).ToList();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await ScrollToBottom();
+		}
+	}
+
+	private async Task ScrollToBottom()
+	{
+		await JSRuntime.InvokeVoidAsync("scrollToBottom", MessagesContainer);
 	}
 
 	private string GetInputFileStyle(int index)

@@ -1,7 +1,12 @@
-﻿<h3>CreateGroupPage</h3>
-<input type="text" @bind="Name" placeholder="Name" />
-<input type="text" @bind="UniqueIdentifier" placeholder="Unique Identifier" />
-<button @onclick="CreateGroup">Create</button>
+﻿
+<div class="create-group">
+  <h3>Create Group</h3>
+  <input type="text" @bind="Name" placeholder="Enter Group Name" class="form-input" />
+  <input type="text" @bind="UniqueIdentifier" placeholder="Enter Unique Identifier" class="form-input" />
+  <button @onclick="CreateGroup" class="btn-primary">Create</button>
+</div>
+
+
 
 @code {
 	[Parameter]

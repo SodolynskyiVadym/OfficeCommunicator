@@ -37,11 +37,10 @@
     public List<Group> FilteredGroups { get; set; } = new List<Group>();
     public List<Contact> FilteredContacts { get; set; } = new List<Contact>();
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         FilteredGroups = Groups;
         FilteredContacts = Contacts;
-        return Task.CompletedTask;
     }
 
     private string _searchText;
