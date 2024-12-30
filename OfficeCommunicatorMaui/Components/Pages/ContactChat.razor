@@ -74,9 +74,6 @@
 	public int UserId { get; set; }
 
 	[Parameter]
-	public int AssociatedUserId { get; set; }
-
-	[Parameter]
 	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
 
 	[Parameter]
@@ -171,7 +168,7 @@
 
 	private async Task CallUser()
 	{
-		await OnCallUser.InvokeAsync(AssociatedUserId);
+		await OnCallUser.InvokeAsync(Contact.AssociatedUserId);
 	}
 
 	private async Task UpdateMessage()

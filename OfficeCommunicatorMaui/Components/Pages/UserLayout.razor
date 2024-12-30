@@ -49,22 +49,23 @@
             }
 
 
-			@if (isAddingContactOpened)
-			{
-				<AddContactPage Users="users" OnAddContact="CreateContact"></AddContactPage>
-			}
+            @if (isAddingContactOpened)
+            {
+                <AddContactPage Users="users" OnAddContact="CreateContact"></AddContactPage>
+            }
 
             @if (isChatOpened)
             {
                 @if (isGroupOpened)
                 {
-                    <GroupChat Group="selectedGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage" UserId="user.Id" />
+                    <GroupChat Group="selectedGroup" OnAddUser="AddUserToGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile" 
+                    OnSendMessage="SendMessage" OnAddAdmin="AddAdmin" Contacts="user.Contacts" UserId="user.Id"
+                    OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
                 }
                 @if (isContactOpened)
                 {
-                    <ContactChat Contact="selectedContact" AssociatedUserId="selectedContact.AssociatedUserId" UserId="user.Id"
-                    OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnSendMessage="SendMessage"
-                    OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
+                    <ContactChat Contact="selectedContact" UserId="user.Id" OnCallUser="CallUser" OnDownloadFile="DownloadFile" 
+                    OnSendMessage="SendMessage" OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
                 }
             }
         </div>
@@ -324,6 +325,69 @@
                 await InvokeAsync(StateHasChanged);
             }
         });
+
+
+        hubConnection.On<User>("OnAddUserToChat", async (user) =>
+        {
+            if (selectedGroup != null)
+            {
+                selectedGroup.Users.Append(user);
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+
+
+        hubConnection.On<Group>("OnAddGroup", async (group) =>
+        {
+            user.Groups.Add(group);
+            await hubConnection.SendAsync("SubscribeChat", group.ChatId);
+            await InvokeAsync(StateHasChanged);
+        });
+
+
+        hubConnection.On<int, int>("OnRemoveUserFromChat", async (userId, groupId) =>
+        {
+            if (selectedGroup != null && selectedGroup.Id == groupId)
+            {
+                User? user = selectedGroup.Users.FirstOrDefault(u => u.Id == userId);
+                if (user != null)
+                {
+                    selectedGroup.Users.Remove(user);
+                    selectedGroup.Admins.Remove(user);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        });
+
+
+        hubConnection.On<int>("OnRemoveChat", async (chatId) =>
+        {
+            if (selectedGroup != null && selectedGroup.ChatId == chatId)
+            {
+                isGroupOpened = false;
+                selectedGroup = null;
+                user.Groups.RemoveAll(g => g.ChatId == chatId);
+                await InvokeAsync(StateHasChanged);
+            }
+            else if (selectedGroup != null && selectedGroup.ChatId != chatId)
+            {
+                user.Groups.RemoveAll(g => g.ChatId == chatId);
+                await InvokeAsync(StateHasChanged);
+            }
+            else if (selectedContact != null && selectedContact.ChatId == chatId)
+            {
+                isContactOpened = false;
+                selectedContact = null;
+                user.Contacts.RemoveAll(c => c.ChatId == chatId);
+                await InvokeAsync(StateHasChanged);
+            }
+            else if (selectedContact != null && selectedContact.ChatId != chatId)
+            {
+                user.Contacts.RemoveAll(c => c.ChatId == chatId);
+                await InvokeAsync(StateHasChanged);
+            }
+            await hubConnection.SendAsync("UnsubscribeChat", chatId);
+        });
     }
 
 
@@ -385,22 +449,22 @@
             user.Groups.Add(group);
             await HandleGroupSelected(group);
             await OpenChat();
-			await InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
     }
 
 
-	private async Task CreateContact(int userId)
-	{
+    private async Task CreateContact(int userId)
+    {
         Contact? contact = await ContactApiService.CreateContactAsync(userId, token);
-		if (contact != null)
-		{
-			user.Contacts.Add(contact);
-			await HandleContactSelected(contact);
-			await OpenChat();
-			await InvokeAsync(StateHasChanged);
-		}
-	}
+        if (contact != null)
+        {
+            user.Contacts.Add(contact);
+            await HandleContactSelected(contact);
+            await OpenChat();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
 
     private async Task SendMessage(MessageStorageDto messageStorageDto)
@@ -453,12 +517,32 @@
         if (result) await hubConnection.SendAsync("RemoveMessage", documentMessageChatId.ChatId, documentMessageChatId.MessageId);
     }
 
+
     private async Task RemoveDocument(DocumentMessageChatId documentMessageChatId)
     {
         bool result = await ChatApiService.DeleteDocumentAsync(documentMessageChatId.DocumentId, token);
         if (result) await hubConnection.SendAsync("DeleteDocument", documentMessageChatId.DocumentId, documentMessageChatId.MessageId, documentMessageChatId.ChatId);
     }
 
+
+
+    public async Task AddUserToGroup(int userId)
+    {
+        if(selectedGroup != null)
+        {
+            User? user = await GroupApiService.AddUserToChatAsync(userId, selectedGroup.Id, token);
+            if (user != null) await hubConnection.SendAsync("AddUserToChat", user, selectedGroup);
+        }
+    }
+
+
+	public async Task AddAdmin(int userId)
+	{
+		if (selectedGroup != null)
+		{
+			await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
+		}
+	}
 
 
     public async Task DownloadFile(DownloadFileRequestDto downloadFileDto)
@@ -475,6 +559,7 @@
         );
     }
 
+
     public async Task CallUser(int callerUserId)
     {
         if (!isCalling)
@@ -489,10 +574,13 @@
 
     }
 
+
     public async Task CallGroup(int chatId)
     {
         if (!isCallingRequest) await hubConnection.SendAsync("CallGroup", chatId, user.ZoomUrl);
     }
+
+
 
     public async Task AcceptCall(CallInfo call)
     {
@@ -514,6 +602,8 @@
         await InvokeAsync(StateHasChanged);
     }
 
+
+
     public async Task CancelCall(CallInfo call)
     {
         await hubConnection.SendAsync("CancelCall", user.Id, call.UserId);
@@ -526,6 +616,8 @@
         isCallingRequest = false;
         callRequest = null;
     }
+
+
 
     public void CloseCalling()
     {
@@ -542,12 +634,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
+
     public async Task OpenAddingContact()
     {
         users = await AuthApiService.GetUsersAsync();
         if (users == null) return;
-		// User? meUser = users.FirstOrDefault(u => u.Id == this.user.Id);
-		// if (meUser != null) users.Remove(meUser);
 		users.RemoveAll(u => user.Contacts.Any(c => c.AssociatedUserId == u.Id) || u.Id == user.Id);
 
         isAddingContactOpened = true;
@@ -556,6 +647,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
+
     public async Task OpenChat()
     {
         isAddingContactOpened = false;
@@ -563,6 +655,7 @@
         isGroupCreating = false;
         await InvokeAsync(StateHasChanged);
     }
+
 
     public async ValueTask DisposeAsync()
     {

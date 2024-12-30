@@ -14,8 +14,8 @@ namespace OfficeCommunicatorMaui.Services
         }
 
         private const string TokenKey = "JwtToken";
-        private const string jack = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3IiwiZW1haWwiOiJqYWNrQGV4YW1wbGUuY29tIiwibmlja25hbWUiOiJKYWNrIiwibmJmIjoxNzM1NDI1MTE2LCJleHAiOjE3MzU1MTE1MTYsImlhdCI6MTczNTQyNTExNn0.-1sxnp9le7fm2fuBdp2Ev3liD0HqIhrGEM55u2bD8OYOXzKKK5zie85CPeUGQH6D8qgnwLx-3PYvsNT8jh0DMg";
-        private const string john = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1IiwiZW1haWwiOiJqb2huZG9lQGV4YW1wbGUuY29tIiwibmlja25hbWUiOiJKb2hubnkiLCJuYmYiOjE3MzU0MjUwOTMsImV4cCI6MTczNTUxMTQ5MywiaWF0IjoxNzM1NDI1MDkzfQ.gB6aZE-V3s3ve9FOFVKDno0wblvTsAhErHMCDSYkeRy3Uv069PPaUp66PzYoeUbCMWtMcnCUi2er4nuySpJr6w";
+        private const string jack = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3IiwiZW1haWwiOiJqYWNrQGV4YW1wbGUuY29tIiwibmlja25hbWUiOiJKYWNrIiwibmJmIjoxNzM1NTExOTA3LCJleHAiOjE3MzU1OTgzMDcsImlhdCI6MTczNTUxMTkwN30.H3fwIxr-qL0qGy_RTH5_XuKPRetTFl8luzKOHltPm-QG2AU94xw8qAh6BhXcr-r2BwP1vvHJ7fG1OGEZGx_9xg";
+        private const string john = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1IiwiZW1haWwiOiJqb2huZG9lQGV4YW1wbGUuY29tIiwibmlja25hbWUiOiJKb2hubnkiLCJuYmYiOjE3MzU1MTE4ODgsImV4cCI6MTczNTU5ODI4OCwiaWF0IjoxNzM1NTExODg4fQ.H9qKhEpApC3tn4lPxLishtza2HboRXuRW_Mc5IYsmHLgm0kHnAyssdApecXVIVM_JG8EjMvSOUkSVp-L-SxAVA";
         public async Task SaveTokenAsync(string token)
         {
             await SecureStorage.SetAsync(TokenKey, token);

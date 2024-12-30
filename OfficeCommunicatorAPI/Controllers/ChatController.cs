@@ -58,7 +58,7 @@ public class ChatController : ControllerBase
         bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
         if (!result) return BadRequest("Invalid user id");
 
-        Group? group = await _groupRepository.GetGroupWithUsers(groupId, userId);
+        Group? group = await _groupRepository.GetGroupWithUsersAdmins(groupId, userId);
         return Ok(group);
     }
 
@@ -184,17 +184,27 @@ public class ChatController : ControllerBase
     }
 
 
-    //[Authorize]
-    //[HttpPost("updload-file")]
-    //public async Task<IActionResult> UploadFile(IFormFile file)
-    //{
-    //    if(file == null || file.Length == 0) return BadRequest("File is null");
-    //    bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
-    //    if (!result) return BadRequest("Invalid user id");
+    [Authorize]
+    [HttpPost("add-user-to-group")]
+    public async Task<IActionResult> AddUserToGroup(UserGroupDto userGroupDto)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+
+        User? result = await _groupRepository.AddUserToGroupAsync(userGroupDto.GroupId, userGroupDto.UserId, userId);
+        if (result == null) return BadRequest("User wasn't added to the group");
+        return Ok(result);
+    }
 
 
-    //    string path = await _fileService.UploadFileAsync(file);
-    //    return Ok(path);
-    //}
+
+    [Authorize]
+    [HttpPost("add-admin")]
+    public async Task<IActionResult> AddAdmin(UserGroupDto userGroupDto)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+        bool result = await _groupRepository.AddAdminAsync(userGroupDto.GroupId, userGroupDto.UserId, userId);
+        if(!result) return BadRequest("Admin wasn't added to the group");
+        return Ok();
+    }
 
 }

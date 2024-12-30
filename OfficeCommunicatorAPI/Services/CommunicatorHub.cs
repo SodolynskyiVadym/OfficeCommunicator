@@ -54,19 +54,19 @@ public class CommunicatorHub : Hub
 
 
 
-    public async Task<Group?> JoinGroup(int groupId)
-    {
-        if(!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
+    //public async Task<Group?> JoinGroup(int groupId)
+    //{
+    //    if(!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
 
-        Group? group = await _groupRepository.GetGroupWithUsers(groupId);
-        if (group == null || group.Users.Any(u => u.Id == userId)) return null;
-        if (await _groupRepository.AddUserToGroupAsync(groupId, userId)) return null;
+    //    Group? group = await _groupRepository.GetGroupWithUsers(groupId);
+    //    if (group == null || group.Users.Any(u => u.Id == userId)) return null;
+    //    if (await _groupRepository.AddUserToGroupAsync(groupId, userId)) return null;
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(group.ChatId));
+    //    await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(group.ChatId));
 
-        group.Users = new List<User>();
-        return group;
-    }
+    //    group.Users = new List<User>();
+    //    return group;
+    //}
 
 
 
@@ -89,18 +89,17 @@ public class CommunicatorHub : Hub
         return contact;
     }
 
-    public async Task SubscribeContact(int contactId)
+    public async Task SubscribeChat(int chatId)
     {
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) return;
-        User? user = await _userRepository.GetByIdAsync(userId);
-        if (user == null) return;
+        await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(chatId));
+    }
 
-        Contact? contact = await _contactRepository.GetByIdAsync(contactId);
-        if (contact == null) return;
 
-        if(contact.UserId != userId && contact.AssociatedUserId != userId) return;
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(contact.ChatId));
+    public async Task AddUserToChat(User user, Group group)
+    {
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(group.ChatId)).SendAsync("OnAddUserToChat", user);
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(user.Id)).SendAsync("OnAddGroup", group);
     }
 
 
@@ -109,8 +108,6 @@ public class CommunicatorHub : Hub
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId) || userId != message.UserId) return;
         if ((!await _groupChecker.CheckPermissionUser(userId, message.ChatId)) && (!await _contactChecker.CheckPermissionUser(userId, message.ChatId))) return;
 
-
-        Console.WriteLine($"Messege was sent to users with chat id {message.ChatId} and content {message.Content}");
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(message.ChatId)).SendAsync("ReceiveMessage", message);
     }
 

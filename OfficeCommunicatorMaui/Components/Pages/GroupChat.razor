@@ -6,65 +6,125 @@
 	<div style="display: flex; justify-content: space-between; align-items: center;">
 		<h1 style="margin: 0;">@Group.Name</h1>
 		<div>
-			<img src="images/add-user.png" @onclick="() => AddPerson()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
-			<img src="images/phone-call.png" @onclick="() => CallGroup()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
-			<img src="images/exit.png" @onclick="() => CallGroup()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
+			<img src="images/add-user.png" @onclick="() => OpenAddingUsers()" class="img-icons-action" />
+			<img src="images/chat.png" @onclick="() => OpenChat()" class="img-icons-action" />
+			<img src="images/list.png" @onclick="() => OpenListMemebers()" class="img-icons-action" />
+			<img src="images/phone-call.png" @onclick="() => CallGroup()" class="img-icons-action" />
+			<img src="images/exit.png" @onclick="() => CallGroup()" class="img-icons-action" />
 		</div>
 	</div>
 
-	<div class="messages-container">
-		@foreach (var message in Group.Chat.Messages)
-		{
-			<div class="message-wrapper @(message.UserId == UserId ? "my-message" : "other-message")">
-				<div style="display: flex">
-					@if (message.UserId == UserId)
-					{
-						<img src="images/delete.png" class="image-action" @onclick="() => DeleteMessage(message.Id)" />
-						<img src="images/pencil.png" class="image-action" @onclick="() => ActivateUpdateMessage(message.Id)" />
-					}
-					<div class="message-content">
-						<p>@message.Content</p>
-						@foreach (var file in message.Documents)
-						{
-							<div style="display: flex; align-items: center;">
-								<p class="file-link" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)" style="padding-right: 10px;">
-									@file.Name
-								</p>
-								@if (message.UserId == UserId)
-								{
-									<img src="images/delete.png" class="image-action" @onclick="() => DeleteDocument(file.Id, message.Id)" />
 
-								}
-							</div>
+	@if (isOpenedChat)
+	{
+		<div class="messages-container">
+			@foreach (var message in Group.Chat.Messages)
+			{
+				<div class="message-wrapper @(message.UserId == UserId ? "my-message" : "other-message")">
+					<div style="display: flex">
+						@if (message.UserId == UserId)
+						{
+							<img src="images/delete.png" class="image-action" @onclick="() => DeleteMessage(message.Id)" />
+							<img src="images/pencil.png" class="image-action" @onclick="() => ActivateUpdateMessage(message.Id)" />
 						}
+						<div class="message-content">
+							<p>@message.Content</p>
+							@foreach (var file in message.Documents)
+							{
+								<div style="display: flex; align-items: center;">
+									<p class="file-link" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)" style="padding-right: 10px;">
+										@file.Name
+									</p>
+									@if (message.UserId == UserId)
+									{
+										<img src="images/delete.png" class="image-action" @onclick="() => DeleteDocument(file.Id, message.Id)" />
+
+									}
+								</div>
+							}
+						</div>
 					</div>
 				</div>
+			}
+		</div>
 
-			</div>
-		}
-	</div>
 
-	<div class="input-container">
-		<textarea type="text" @bind="content" class="message-input" placeholder="Type your message..." />
-		@if (isUpdating)
-		{
-			<button class="send-button" @onclick="() => UpdateMessage()">Update</button>
-			<button class="send-button" @onclick="() => CancelUpdating()">Cancel</button>
+		<div class="input-container">
+			<textarea type="text" @bind="content" class="message-input" placeholder="Type your message..." />
+			@if (isUpdating)
+			{
+				<button class="send-button" @onclick="() => UpdateMessage()">Update</button>
+				<button class="send-button" @onclick="() => CancelUpdating()">Cancel</button>
 
-		}
-		else
-		{
-			<button class="send-button" @onclick="SendMessage">Send</button>
-			<div class="file-inputs">
-				@for (int i = 0; i < countInputsFiles; i++)
+			}
+			else
+			{
+				<button class="send-button" @onclick="SendMessage">Send</button>
+				<div class="file-inputs">
+					@for (int i = 0; i < countInputsFiles; i++)
+					{
+						<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
+					}
+				</div>
+			}
+		</div>
+	}
+
+
+
+	@if (isAddingUsers)
+	{
+		<div class="add-user">
+			<h3>Add user to chat</h3>
+			<div class="contact-list">
+				<input type="text" placeholder="Enter email or unique name" class="search-bar" @bind="SearchText" />
+
+				@foreach (var user in FilteredUsers)
 				{
-					<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
+					<div class="list-item">
+						<img src="images/contact.png" alt="Contact Image" class="contact-image" />
+						<div class="contact-details">
+							<div class="contact-name">@user.Name</div>
+							<div class="contact-unique">@user.UniqueName</div>
+							<div class="contact-email">@user.Email</div>
+						</div>
+						<button class="add-button" @onclick="() => AddUser(user.Id)">Add</button>
+					</div>
 				}
 			</div>
-		}
+		</div>
+	}
 
-	</div>
+
+	@if (isListMembers)
+	{
+		<div class="add-user">
+			<h3>Chat members</h3>
+			<div class="contact-list">
+				@foreach (var user in Group.Users)
+				{
+					<div class="list-item">
+						<img src="images/contact.png" alt="Contact Image" class="contact-image" />
+						<div class="contact-details">
+							<div class="contact-name">@user.Name</div>
+							<div class="contact-unique">@user.UniqueName</div>
+							<div class="contact-email">@user.Email</div>
+							<div>@(Group.Admins.Any(a => a.Id == user.Id) ? "ADMIN" : "USER")</div>
+						</div>
+						@if (Group.Admins.Any(a => a.Id == UserId) && !Group.Admins.Any(a => a.Id == user.Id))
+						{
+							<button class="add-button" @onclick="() => AddAdmin(user.Id)">Make admin</button>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
 </div>
+
+
+
+
 
 @code {
 
@@ -73,6 +133,9 @@
 
 	[Parameter]
 	public int UserId { get; set; }
+
+	[Parameter]
+	public List<Contact> Contacts { get; set; }
 
 	[Parameter]
 	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
@@ -92,17 +155,47 @@
 	[Parameter]
 	public EventCallback<DocumentMessageChatId> OnDeleteDocument { get; set; }
 
+	[Parameter]
+	public EventCallback<int> OnAddUser { get; set; }
+
+	[Parameter]
+	public EventCallback<int> OnAddAdmin { get; set; }
+
+	private List<User> users { get; set; }
+	public List<User> FilteredUsers { get; set; }
+	private string _searchText;
+	public string SearchText
+	{
+		get => _searchText;
+		set
+		{
+			if (_searchText != value)
+			{
+				_searchText = value;
+				Search();
+			}
+		}
+	}
+
 	private string content { get; set; } = string.Empty;
 	private int countInputsFiles { get; set; } = 1;
-	private bool isUpdating { get; set; } = false;
+	private bool isAddingUsers { get; set; }
+	private bool isListMembers { get; set; }
+	private bool isOpenedChat { get; set; }
+	private bool isUpdating { get; set; }
 	private int updatingMessageId { get; set; } = 0;
 
 	private List<IBrowserFile> SelectedFiles { get; set; } = new();
 
 
-	protected override async Task OnInitializedAsync()
+	protected override async Task OnParametersSetAsync()
 	{
 		Group.Chat.Messages = Group.Chat.Messages.OrderBy(m => m.Date).ToList();
+		OpenChat();
+
+		users = Contacts.Select(c => c.AssociatedUser).ToList();
+		users = users.Where(u => !Group.Users.Any(gu => gu.Id == u.Id)).ToList();
+		FilteredUsers = users;
 	}
 
 
@@ -153,6 +246,26 @@
 			if (SelectedFiles.Any(f => f.Name == file.Name)) SelectedFiles.RemoveAll(f => f.Name == file.Name);
 			SelectedFiles.Add(file);
 		}
+	}
+
+
+	private async Task AddUser(int userId)
+	{
+		User? user = users.FirstOrDefault(u => u.Id == userId);
+		if (user == null) return;
+		Group.Users.Add(user);
+		users.RemoveAll(u => u.Id == userId);
+		await OnAddUser.InvokeAsync(userId);
+	}
+
+
+	private async Task AddAdmin(int userId)
+	{
+		User? user = users.FirstOrDefault(u => u.Id == userId);
+		if (user == null) return;
+		Group.Admins.Add(user);
+		await OnAddAdmin.InvokeAsync(userId);
+		await InvokeAsync(StateHasChanged);
 	}
 
 
@@ -223,10 +336,30 @@
 		await InvokeAsync(StateHasChanged);
 	}
 
-
-
-	private async Task AddPerson()
+	private void OpenChat()
 	{
-		
+		isAddingUsers = false;
+		isListMembers = false;
+		isOpenedChat = true;
+	}
+
+	private void OpenListMemebers()
+	{
+		isAddingUsers = false;
+		isListMembers = true;
+		isOpenedChat = false;
+	}
+
+	private void OpenAddingUsers()
+	{
+		isAddingUsers = true;
+		isListMembers = false;
+		isOpenedChat = false;
+	}
+
+
+	private void Search()
+	{
+		FilteredUsers = users.Where(u => u.UniqueName.Contains(_searchText) || u.Email.Contains(_searchText)).ToList();
 	}
 }

@@ -32,7 +32,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         return await _dbContext.Groups.FindAsync(id);
     }
 
-    public async Task<Group?> GetGroupWithUsers(int groupId, int userId)
+    public async Task<Group?> GetGroupWithUsersAdmins(int groupId, int userId)
     {
         return await _dbContext.Groups
             .Include(g => g.Users)
@@ -43,11 +43,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
             .FirstOrDefaultAsync(g => g.Id == groupId && g.Users.FirstOrDefault(u => u.Id == userId) != null);
     }
     
-    
-    public async Task<Group?> GetGroupWithUsers(int groupId)
-    {
-        return await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
-    }
+   
 
     public async Task<List<Group>> GetAllAsync()
     {
@@ -72,19 +68,47 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
     }
     
     
-    public async Task<bool> AddUserToGroupAsync(int groupId, int userId)
+    public async Task<User?> AddUserToGroupAsync(int groupId, int userId, int adminUserId)
     {
-        Group? group = await _dbContext.Groups.Include(g => g.Users).FirstOrDefaultAsync(g => g.Id == groupId);
-        if (group == null) return false;
+        Console.WriteLine("Adding repository work");
+        Group? group = await _dbContext.Groups
+            .Include(g => g.Users)
+            .Include(g => g.Admins)
+            .FirstOrDefaultAsync(g => g.Id == groupId);
+
+        if (group == null) return null;
+        if (!group.Admins.Any(a => a.Id == adminUserId)) return null;
+        if (group.Users.Any(u => u.Id == userId)) return null;
 
         User? user = await _dbContext.Users.FindAsync(userId);
-        if (user == null) return false;
-        if(group.Users.Any(u => u.Id == userId)) return false;
+        if (user == null) return user;
 
         group.Users.Add(user);
 
+        if (await _dbContext.SaveChangesAsync() > 0) return user;
+        else return null;
+    }
+
+
+    public async Task<bool> AddAdminAsync(int groupId, int userId, int adminUserId)
+    {
+        Group? group = await _dbContext.Groups
+            .Include(g => g.Users)
+            .Include(g => g.Admins)
+            .FirstOrDefaultAsync(g => g.Id == groupId);
+
+        if (group == null) return false;
+        if (!group.Admins.Any(a => a.Id == adminUserId)) return false;
+        if (group.Admins.Any(a => a.Id == userId)) return false;
+        if (!group.Users.Any(u => u.Id == userId)) return false;
+
+        User? user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        group.Admins.Add(user);
         return await _dbContext.SaveChangesAsync() > 0;
     }
+
 
     public async Task<bool> UpdateAsync(GroupUpdateDto groupDto)
     {
@@ -95,6 +119,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         int result = await _dbContext.SaveChangesAsync();
         return result > 0;
     }
+
 
     public async Task<bool> DeleteAsync(int id)
     {
@@ -107,6 +132,7 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
     }
     
     
+
     public async Task<bool> IsUserAdmin(int groupId, int userId)
     {
         Group? group = await _dbContext.Groups.Include(g => g.Admins).FirstOrDefaultAsync(g => g.Id == groupId);

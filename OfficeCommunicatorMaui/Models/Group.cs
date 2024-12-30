@@ -9,7 +9,7 @@
         public int ChatId { get; set; }
         public Chat Chat { get; set; }
         public List<User> Admins { get; set; }
-        public IEnumerable<User> Users { get; set; }
+        public List<User> Users { get; set; }
 
     }
 }

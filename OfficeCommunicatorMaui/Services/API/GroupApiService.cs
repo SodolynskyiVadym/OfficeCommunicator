@@ -32,5 +32,39 @@ namespace OfficeCommunicatorMaui.Services.API
                 throw new Exception($"Failed to create group: {error}");
             }
         }
+
+
+        public async Task<User?> AddUserToChatAsync(int userId, int groupId, string token)
+        {
+            var body = new { UserId = userId, GroupId = groupId };
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsync(_url + $"/add-user-to-group", JsonRequestConvert.ConvertToJsonRequest(body));
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<User>();
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to add user to chat: {error}");
+            }
+        }
+
+
+        public async Task<bool> AddAdminAsync(int userId, int groupId, string token)
+        {
+            var body = new { UserId = userId, GroupId = groupId };
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.PostAsync(_url + $"/add-admin", JsonRequestConvert.ConvertToJsonRequest(body));
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to add admin: {error}");
+            }
+        }
     }
 }
