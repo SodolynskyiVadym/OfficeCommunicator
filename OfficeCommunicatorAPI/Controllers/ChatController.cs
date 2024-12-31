@@ -42,7 +42,6 @@ public class ChatController : ControllerBase
     [HttpGet("get-contact/{associatedUserId}")]
     public async Task<IActionResult> GetContact(int associatedUserId)
     {
-        Console.WriteLine($"Associated id {associatedUserId}");
         bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
         if (!result) return BadRequest("Invalid user id");
 
@@ -190,6 +189,9 @@ public class ChatController : ControllerBase
     {
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
 
+
+        Console.WriteLine($"Group id {userGroupDto.GroupId} and user id {userGroupDto.UserId}");
+        Console.WriteLine($"Sender is {userId}");
         User? result = await _groupRepository.AddUserToGroupAsync(userGroupDto.GroupId, userGroupDto.UserId, userId);
         if (result == null) return BadRequest("User wasn't added to the group");
         return Ok(result);
@@ -201,9 +203,48 @@ public class ChatController : ControllerBase
     [HttpPost("add-admin")]
     public async Task<IActionResult> AddAdmin(UserGroupDto userGroupDto)
     {
+        Console.WriteLine("Methid add admin work");
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
         bool result = await _groupRepository.AddAdminAsync(userGroupDto.GroupId, userGroupDto.UserId, userId);
         if(!result) return BadRequest("Admin wasn't added to the group");
+        return Ok();
+    }
+
+
+    [Authorize]
+    [HttpDelete("leave-group/{groupId}")]
+    public async Task<IActionResult> LeaveGroup(int groupId)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+
+        bool result = await _groupRepository.RemoveUserFromGroupAsync(groupId, userId);
+        if (!result) return BadRequest("User wasn't removed from the group");
+        return Ok();
+    }
+
+
+    [Authorize]
+    [HttpDelete("remove-user-from-group/{groupId}/{userId}")]
+    public async Task<IActionResult> RemoveUser(int groupId, int userId)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var adminUserId)) return BadRequest("Invalid user id");
+
+        Console.WriteLine($"Method remove user from group work. Removing user {userId} from group {groupId}");
+
+        bool result = await _groupRepository.RemoveUserFromGroupAsAdminAsync(groupId, userId, adminUserId);
+        if (!result) return BadRequest("User wasn't removed from the group");
+        return Ok();
+    }
+
+
+    [Authorize]
+    [HttpDelete("delete-contact/{chatId}")]
+    public async Task<IActionResult> RemoveContact(int chatId)
+    {
+        if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
+
+        bool result = await _contactRepository.DeleteAsync(chatId, userId);
+        if (!result) return BadRequest("Contact wasn't removed");
         return Ok();
     }
 

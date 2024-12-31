@@ -8,7 +8,7 @@
 		<h1 style="margin: 0;">@Contact.AssociatedUser.Name</h1>
 		<div>
 			<img src="images/phone-call.png" @onclick="() => CallUser()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
-			<img src="images/exit.png" @onclick="() => CallUser()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
+			<img src="images/exit.png" @onclick="() => OnRemoveContact.InvokeAsync()" style="max-width: 40px; max-height: 40px; cursor: pointer; margin-left: 10px;" />
 		</div>
 	</div>
 
@@ -77,6 +77,9 @@
 	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
 
 	[Parameter]
+	public EventCallback OnRemoveContact { get; set; }
+
+	[Parameter]
 	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
 
 	[Parameter]
@@ -126,6 +129,7 @@
 
 	private async Task SendMessage()
 	{
+		if (string.IsNullOrEmpty(content) && SelectedFiles.Count() == 0) return;
 		List<Document> documents = new();
 		foreach (var file in SelectedFiles)
 		{
@@ -202,12 +206,18 @@
 
 	private async Task DeleteDocument(int documentId, int messageId)
 	{
-		await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Contact.ChatId));
-
 		var message = Contact.Chat.Messages.FirstOrDefault(m => m.Documents.Any(d => d.Id == documentId));
+		if (message == null) return;
 		var document = message.Documents.FirstOrDefault(d => d.Id == documentId);
-		message.Documents.Remove(document);
-		await InvokeAsync(StateHasChanged);
+		if (document == null) return;
+
+		if (message.Documents.Count() == 1) await DeleteMessage(messageId);
+		else
+		{
+			await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Contact.ChatId));
+			message.Documents.Remove(document);
+			await InvokeAsync(StateHasChanged);
+		}
 	}
 
 

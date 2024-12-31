@@ -6,7 +6,7 @@ using OfficeCommunicatorAPI.Services;
 
 namespace OfficeCommunicatorAPI.Repositories;
 
-public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateDto>
+public class ContactRepository
 {
     private readonly OfficeDbContext _dbContext;
     private readonly IMapper _mapper;
@@ -122,19 +122,14 @@ public class ContactRepository : IRepository<Contact, ContactDto, ContactUpdateD
         return (contact, associatedContact);
     }
 
-    public Task<bool> UpdateAsync(ContactUpdateDto entity)
+    public async Task<bool> DeleteAsync(int chatId, int userId)
     {
-        throw new NotImplementedException();
-    }
+        List<Contact> contacts = await _dbContext.Contacts.Where(c => c.ChatId == chatId && (c.UserId == userId || c.AssociatedUserId == userId)).ToListAsync();
 
-    public async Task<bool> DeleteAsync(int id)
-    {
-        Contact? contact = await _dbContext.Contacts.FindAsync(id);
-        if (contact == null) return false;
-        
-        _dbContext.Contacts.Remove(contact);
-        int result = await _dbContext.SaveChangesAsync();
-        return result > 0;
+        if(contacts.Count() == 0) return false;
+        _dbContext.Contacts.RemoveRange(contacts);
+        await _dbContext.SaveChangesAsync();
+        return true;
     }
     
     

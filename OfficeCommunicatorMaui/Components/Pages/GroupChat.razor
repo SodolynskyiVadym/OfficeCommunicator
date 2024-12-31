@@ -6,11 +6,14 @@
 	<div style="display: flex; justify-content: space-between; align-items: center;">
 		<h1 style="margin: 0;">@Group.Name</h1>
 		<div>
-			<img src="images/add-user.png" @onclick="() => OpenAddingUsers()" class="img-icons-action" />
+			@if (Group.Admins.Any(a => a.Id == UserId))
+			{
+				<img src="images/add-user.png" @onclick="() => OpenAddingUsers()" class="img-icons-action" />
+			}
 			<img src="images/chat.png" @onclick="() => OpenChat()" class="img-icons-action" />
 			<img src="images/list.png" @onclick="() => OpenListMemebers()" class="img-icons-action" />
 			<img src="images/phone-call.png" @onclick="() => CallGroup()" class="img-icons-action" />
-			<img src="images/exit.png" @onclick="() => CallGroup()" class="img-icons-action" />
+			<img src="images/exit.png" @onclick="() => OnLeaveGroup.InvokeAsync()" class="img-icons-action" />
 		</div>
 	</div>
 
@@ -79,7 +82,7 @@
 			<div class="contact-list">
 				<input type="text" placeholder="Enter email or unique name" class="search-bar" @bind="SearchText" />
 
-				@foreach (var user in FilteredUsers)
+				@foreach (var user in FilteredUserContactsUnadded)
 				{
 					<div class="list-item">
 						<img src="images/contact.png" alt="Contact Image" class="contact-image" />
@@ -114,6 +117,7 @@
 						@if (Group.Admins.Any(a => a.Id == UserId) && !Group.Admins.Any(a => a.Id == user.Id))
 						{
 							<button class="add-button" @onclick="() => AddAdmin(user.Id)">Make admin</button>
+							<button class="add-button" @onclick="() => RemoveUserFromGroup(user.Id)">Remove</button>
 						}
 					</div>
 				}
@@ -141,6 +145,12 @@
 	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
 
 	[Parameter]
+	public EventCallback OnLeaveGroup { get; set; }
+
+	[Parameter]
+	public EventCallback<int> OnRemoveUserFromGroup { get; set; }
+
+	[Parameter]
 	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
 
 	[Parameter]
@@ -161,8 +171,8 @@
 	[Parameter]
 	public EventCallback<int> OnAddAdmin { get; set; }
 
-	private List<User> users { get; set; }
-	public List<User> FilteredUsers { get; set; }
+	private List<User> userContactsUnadded { get; set; }
+	public List<User> FilteredUserContactsUnadded { get; set; }
 	private string _searchText;
 	public string SearchText
 	{
@@ -187,20 +197,25 @@
 
 	private List<IBrowserFile> SelectedFiles { get; set; } = new();
 
+	protected override async Task OnInitializedAsync()
+	{
+		OpenChat();
+	}
 
 	protected override async Task OnParametersSetAsync()
 	{
 		Group.Chat.Messages = Group.Chat.Messages.OrderBy(m => m.Date).ToList();
-		OpenChat();
 
-		users = Contacts.Select(c => c.AssociatedUser).ToList();
-		users = users.Where(u => !Group.Users.Any(gu => gu.Id == u.Id)).ToList();
-		FilteredUsers = users;
+		userContactsUnadded = Contacts.Select(c => c.AssociatedUser).ToList();
+		userContactsUnadded = userContactsUnadded.Where(u => !Group.Users.Any(gu => gu.Id == u.Id)).ToList();
+		FilteredUserContactsUnadded = userContactsUnadded;
 	}
 
 
 	private async Task SendMessage()
 	{
+		if (string.IsNullOrEmpty(content) && SelectedFiles.Count() == 0) return;
+
 		List<Document> documents = new();
 		foreach (var file in SelectedFiles)
 		{
@@ -222,6 +237,16 @@
 		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Group), Group.ChatId, content, SelectedFiles));
 
 		content = string.Empty;
+	}
+
+
+	public async Task RemoveUserFromGroup(int userId)
+	{
+		User? user = Group.Users.FirstOrDefault(u => u.Id == userId);
+		if (user == null) return;
+		Group.Users.Remove(user);
+		userContactsUnadded.Add(user);
+		await OnRemoveUserFromGroup.InvokeAsync(userId);
 	}
 
 
@@ -251,21 +276,21 @@
 
 	private async Task AddUser(int userId)
 	{
-		User? user = users.FirstOrDefault(u => u.Id == userId);
+		User? user = userContactsUnadded.FirstOrDefault(u => u.Id == userId);
 		if (user == null) return;
 		Group.Users.Add(user);
-		users.RemoveAll(u => u.Id == userId);
+		userContactsUnadded.RemoveAll(u => u.Id == userId);
 		await OnAddUser.InvokeAsync(userId);
 	}
 
 
-	private async Task AddAdmin(int userId)
+	public async Task AddAdmin(int userId)
 	{
-		User? user = users.FirstOrDefault(u => u.Id == userId);
+		if (Group.Admins.Any(a => a.Id == userId)) return;
+		User? user = Group.Users.FirstOrDefault(u => u.Id == userId);
 		if (user == null) return;
 		Group.Admins.Add(user);
 		await OnAddAdmin.InvokeAsync(userId);
-		await InvokeAsync(StateHasChanged);
 	}
 
 
@@ -306,15 +331,20 @@
 
 	private async Task DeleteDocument(int documentId, int messageId)
 	{
-		await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Group.ChatId));
 
 		var message = Group.Chat.Messages.FirstOrDefault(m => m.Documents.Any(d => d.Id == documentId));
 		if (message == null) return;
 		var document = message.Documents.FirstOrDefault(d => d.Id == documentId);
 		if (document == null) return;
-		message.Documents.Remove(document);
 
-		await InvokeAsync(StateHasChanged);
+		if (message.Documents.Count() == 1) await DeleteMessage(messageId);
+		else
+		{
+			await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Group.ChatId));
+			message.Documents.Remove(document);
+
+			await InvokeAsync(StateHasChanged);
+		}
 	}
 
 
@@ -360,6 +390,6 @@
 
 	private void Search()
 	{
-		FilteredUsers = users.Where(u => u.UniqueName.Contains(_searchText) || u.Email.Contains(_searchText)).ToList();
+		FilteredUserContactsUnadded = userContactsUnadded.Where(u => u.UniqueName.Contains(_searchText) || u.Email.Contains(_searchText)).ToList();
 	}
 }

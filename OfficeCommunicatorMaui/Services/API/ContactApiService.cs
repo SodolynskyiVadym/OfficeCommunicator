@@ -47,5 +47,20 @@ namespace OfficeCommunicatorMaui.Services.API
                 throw new Exception($"Failed to create contact: {error}");
             }
         }
+
+        public async Task<bool> RemoveContact(int chatId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.DeleteAsync(_url + $"/delete-contact/{chatId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to remove contact: {error}");
+            }
+        }
     }
 }

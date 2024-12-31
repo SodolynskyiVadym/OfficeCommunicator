@@ -42,57 +42,38 @@ public class CommunicatorHub : Hub
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateUserGroupName(userId));
 
-        foreach (var group in user.Groups) await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(group.ChatId));
-        foreach (var contact in user.Contacts) await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(contact.ChatId));
+        Console.WriteLine($"USer {user.Name} was subscribed");
+        foreach (var group in user.Groups)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(group.ChatId));
+            Console.WriteLine($"User was added to group {GeneratorHubGroupName.GenerateChatName(group.ChatId)}");
+        }
+        foreach (var contact in user.Contacts)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(contact.ChatId));
+            Console.WriteLine($"User was added to group {GeneratorHubGroupName.GenerateChatName(contact.ChatId)}");
+
+        }
         _counter++;
 
 
         Console.WriteLine($"A client connected {DateTime.Now}. Total clients: {_counter}");
-        Console.WriteLine($"User was added to {user.Groups.Count()} groups");
+        Console.WriteLine($"User was added to {user.Groups.Count() + user.Contacts.Count()} groups");
         await base.OnConnectedAsync();
     }
 
 
 
-    //public async Task<Group?> JoinGroup(int groupId)
-    //{
-    //    if(!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
-
-    //    Group? group = await _groupRepository.GetGroupWithUsers(groupId);
-    //    if (group == null || group.Users.Any(u => u.Id == userId)) return null;
-    //    if (await _groupRepository.AddUserToGroupAsync(groupId, userId)) return null;
-
-    //    await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(group.ChatId));
-
-    //    group.Users = new List<User>();
-    //    return group;
-    //}
-
-
-
-    public async Task<Contact?> CreateContact(int associatedUserId)
-    {
-        if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) return null;
-
-        if(userId == associatedUserId) return null;
-
-        Contact? contact = await _contactRepository.GetByUserIdAndAssociatedUserIdAsync(userId, associatedUserId);
-        if (contact != null) return null;
-
-        (contact, Contact? associatedContact) = await _contactRepository.AddContactAsync(associatedUserId, userId);
-
-        if (contact == null) return null;
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(contact.ChatId));
-        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(associatedUserId)).SendAsync("ReceiveContact", associatedContact);
-
-        return contact;
-    }
-
     public async Task SubscribeChat(int chatId)
     {
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) return;
         await Groups.AddToGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(chatId));
+    }
+
+
+    public async Task UnsubscribeChat(int chatId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, GeneratorHubGroupName.GenerateChatName(chatId));
     }
 
 
@@ -102,9 +83,27 @@ public class CommunicatorHub : Hub
         await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(user.Id)).SendAsync("OnAddGroup", group);
     }
 
+    public async Task CreateContact(int userId, Contact contact)
+    {
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(userId)).SendAsync("OnAddContact", contact);
+    }
+
+
+    public async Task RemoveUserFromGroup(int userId, int chatId)
+    {
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnRemoveUserFromGroup", userId, chatId);
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(userId)).SendAsync("OnRemoveChat", chatId);
+    }
+
+    public async Task RemoveContact(int userId, int chatId)
+    {
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(userId)).SendAsync("OnRemoveChat", chatId);
+    }
+
 
     public async Task SendMessage(Message message)
     {
+        Console.WriteLine($"Sending message {message.Content} with {message.Documents.Count} documents");
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId) || userId != message.UserId) return;
         if ((!await _groupChecker.CheckPermissionUser(userId, message.ChatId)) && (!await _contactChecker.CheckPermissionUser(userId, message.ChatId))) return;
 
@@ -113,7 +112,6 @@ public class CommunicatorHub : Hub
 
 
 
-    [Authorize]
     public async Task UpdateMessage(Message message)
     {
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId)) throw new ArgumentException("Invalid user id");
@@ -125,14 +123,17 @@ public class CommunicatorHub : Hub
 
     public async Task RemoveMessage(int chatId, int messageId)
     {
+        Console.WriteLine($"Delete message int chat id {chatId}, message Id {messageId}");
         await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnRemoveMessage", chatId, messageId);
     }
 
 
     public async Task DeleteDocument(int documentId, int messageId, int chatId)
     {
-        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnDeleteDocument", documentId, messageId, chatId);
+        Console.WriteLine($"Delete document {documentId}, messageid {messageId}, chatId {chatId} in group {GeneratorHubGroupName.GenerateChatName(chatId)}");
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnRemoveDocument", documentId, messageId, chatId);
     }
+
 
     public async Task CallUser(int userId, int callerUserId)
     {

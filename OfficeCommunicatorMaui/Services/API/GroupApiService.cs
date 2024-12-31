@@ -66,5 +66,36 @@ namespace OfficeCommunicatorMaui.Services.API
                 throw new Exception($"Failed to add admin: {error}");
             }
         }
+
+
+        public async Task<bool> LeaveGroup(int groupId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.DeleteAsync(_url + $"/leave-group/{groupId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to leave group: {error}");
+            }
+        }
+
+        public async Task<bool> RemoveUserFromGroup(int groupId, int userId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await _httpClient.DeleteAsync(_url + $"/remove-user-from-group/{groupId}/{userId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = response.ReasonPhrase;
+                throw new Exception($"Failed to leave group: {error}");
+            }
+        }
     }
 }

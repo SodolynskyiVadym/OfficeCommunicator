@@ -77,11 +77,15 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
             .FirstOrDefaultAsync(g => g.Id == groupId);
 
         if (group == null) return null;
+        Console.WriteLine("Group is not null");
         if (!group.Admins.Any(a => a.Id == adminUserId)) return null;
+        Console.WriteLine("Admin is in group");
         if (group.Users.Any(u => u.Id == userId)) return null;
+        Console.WriteLine("User is not in group");
 
         User? user = await _dbContext.Users.FindAsync(userId);
-        if (user == null) return user;
+        if (user == null) return null;
+        Console.WriteLine("User is not null");
 
         group.Users.Add(user);
 
@@ -106,6 +110,49 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
         if (user == null) return false;
 
         group.Admins.Add(user);
+        return await _dbContext.SaveChangesAsync() > 0;
+    }
+
+
+
+    public async Task<bool> RemoveUserFromGroupAsync(int groupId, int userId)
+    {
+        Group? group = await _dbContext.Groups
+            .Include(g => g.Users)
+            .Include(g => g.Admins)
+            .FirstOrDefaultAsync(g => g.Id == groupId);
+
+        if (group == null) return false;
+        if (!group.Users.Any(u => u.Id == userId)) return false;
+        User? user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        group.Users.Remove(user);
+        group.Admins.Remove(user);
+        Console.WriteLine($"Count of users in group is {group.Users.Count()}");
+        foreach (var u in group.Users)
+        {
+            Console.WriteLine($"User in group is {u.Name}");
+        }
+        if (group.Users.Count() == 0) _dbContext.Groups.Remove(group);
+        return await _dbContext.SaveChangesAsync() > 0;
+    }
+
+    public async Task<bool> RemoveUserFromGroupAsAdminAsync(int groupId, int userId, int adminUserId)
+    {
+        Group? group = await _dbContext.Groups
+            .Include(g => g.Users)
+            .Include(g => g.Admins)
+            .FirstOrDefaultAsync(g => g.Id == groupId);
+
+        if (group == null) return false;
+        if (!group.Users.Any(u => u.Id == userId)) return false;
+        if (!group.Admins.Any(a => a.Id == adminUserId)) return false;
+
+        User? user = await _dbContext.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        group.Users.Remove(user);
         return await _dbContext.SaveChangesAsync() > 0;
     }
 
