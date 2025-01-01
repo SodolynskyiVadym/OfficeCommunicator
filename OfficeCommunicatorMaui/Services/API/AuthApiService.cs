@@ -30,50 +30,76 @@ namespace OfficeCommunicatorMaui.Services.API
         }
 
 
-        public async Task<List<User>?> GetUsersAsync()
+        public async Task<ServerResponse<List<User>>> GetUsersAsync()
         {
-            var response = await _httpClient.GetAsync(_url + "/getAll");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return await response.Content.ReadFromJsonAsync<List<User>>();
+                var response = await _httpClient.GetAsync(_url + "/getAll");
+                return new ServerResponse<List<User>>(response);
             }
-            else
+            catch (Exception e)
             {
-                throw new Exception("Failed to get users");
+                return new ServerResponse<List<User>>(null, 500, false, e.Message);
             }
+            //    if (response.IsSuccessStatusCode)
+            //{
+            //    return await response.Content.ReadFromJsonAsync<List<User>>();
+            //}
+            //else
+            //{
+            //    throw new Exception("Failed to get users");
+            //}
         }
 
-        public async Task<string?> LoginAsync(string username, string password)
+        public async Task<ServerResponse<LoginResponse>> LoginAsync(string username, string password)
         {
             var loginRequest = new { Email = username, Password = password };
-            var response = await _httpClient.PostAsync(_url + "/login", JsonRequestConvert.ConvertToJsonRequest(loginRequest));
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                return result?.Token;
+                var response = await _httpClient.PostAsync(_url + "/login", JsonRequestConvert.ConvertToJsonRequest(loginRequest));
+                return new ServerResponse<LoginResponse>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Login failed: {error}");
+                return new ServerResponse<LoginResponse>(null, 500, false, e.Message);
             }
+            //    var response = await _httpClient.PostAsync(_url + "/login", JsonRequestConvert.ConvertToJsonRequest(loginRequest));
+            //if (response.IsSuccessStatusCode)
+            //{
+            //    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            //    return result?.Token;
+            //}
+            //else
+            //{
+            //    var error = await response.Content.ReadAsStringAsync();
+            //    throw new Exception($"Login failed: {error}");
+            //}
         }
 
-        public async Task<string?> SignUp(string userName, string email, string uniqueName, string zoomUrl, string password)
+        public async Task<ServerResponse<string>> SignUp(string userName, string email, string uniqueName, string zoomUrl, string password)
         {
             var signUpRequest = new { Email = email, Name = userName, UniqueName = uniqueName, ZoomUrl = zoomUrl, Password = password };
-            var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
+            try
+            {
+                var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
+                return new ServerResponse<string>(response);
+            }
+            catch (Exception e)
+            {
+                return new ServerResponse<string>(null, 500, false, e.Message);
+            }
+            //    var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
 
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                return result?.Token;
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Registration failed: {error}");
-            }
+            //if (response.IsSuccessStatusCode)
+            //{
+            //    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            //    return result?.Token;
+            //}
+            //else
+            //{
+            //    var error = await response.Content.ReadAsStringAsync();
+            //    throw new Exception($"Registration failed: {error}");
+            //}
         }
     }
 

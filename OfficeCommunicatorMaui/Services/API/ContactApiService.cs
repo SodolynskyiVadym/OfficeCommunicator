@@ -15,51 +15,47 @@ namespace OfficeCommunicatorMaui.Services.API
             _url = url + "/chat";
         }
 
-        public async Task<Models.Contact?> GetContactAsync(int contactId, string token)
+        public async Task<ServerResponse<Models.Contact>> GetContactAsync(int contactId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync(_url + $"/get-contact/{contactId}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                Models.Contact? result = await response.Content.ReadFromJsonAsync<Models.Contact>();
-                return result;
+                var response = await _httpClient.GetAsync(_url + $"/get-contact/{contactId}");
+                return new ServerResponse<Models.Contact>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to get contact: {error}");
+                return new ServerResponse<Models.Contact>(null, 500, false, e.Message);
             }
         }
 
 
-        public async Task<Models.Contact?> CreateContactAsync(int userId, string token)
+        public async Task<ServerResponse<Models.Contact>> CreateContactAsync(int userId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var body = new { AssociatedUserId = userId };
-            var response = await _httpClient.PostAsync(_url + $"/create-contact", JsonRequestConvert.ConvertToJsonRequest(body));
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return await response.Content.ReadFromJsonAsync<Models.Contact>();
+                var response = await _httpClient.PostAsync(_url + "/create-contact", JsonRequestConvert.ConvertToJsonRequest(body));
+                return new ServerResponse<Models.Contact>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to create contact: {error}");
+                return new ServerResponse<Models.Contact>(null, 500, false, e.Message);
             }
         }
 
-        public async Task<bool> RemoveContact(int chatId, string token)
+        public async Task<ServerResponse<bool>> RemoveContact(int chatId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.DeleteAsync(_url + $"/delete-contact/{chatId}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return true;
+                var response = await _httpClient.DeleteAsync(_url + $"/delete-contact/{chatId}");
+                return new ServerResponse<bool>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to remove contact: {error}");
+                return new ServerResponse<bool>(false, 500, false, e.Message);
             }
         }
     }

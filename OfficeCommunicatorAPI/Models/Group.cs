@@ -14,15 +14,4 @@ public class Group
 
     [JsonIgnore]
     public List<User> Users { get; set; }
-
-    public Group CreatePresentGroupModel()
-    {
-        return new Group()
-        {
-            Id = this.Id,
-            Name = this.Name,
-            UniqueIdentifier = this.UniqueIdentifier,
-            ChatId = this.ChatId
-        };
-    }
 }

@@ -21,10 +21,16 @@
         <CallingPage Call="userCall" OnCancel="CancelCall"></CallingPage>
     }
 
-    @if (isGroupCreating)
+    @if (isError)
+    {
+        <div>@errorMessage</div>
+        <button @onclick="() => isError = false">Ok</button>
+    }
+
+    @*     @if (isGroupCreating)
     {
         <GroupCreate OnCreateGroup="CreateGroup"></GroupCreate>
-    }
+    } *@
 
     <div style="display: flex;">
         <div style="width:5%; text-align:center; margin-top: 30px;">
@@ -86,6 +92,7 @@
     private bool isAddingContactOpened { get; set; }
     private bool isCallingRequest { get; set; }
     private bool isCalling { get; set; }
+    private bool isError { get; set; }
 
     private int selectedGroupId { get; set; }
     private int selectedContactId { get; set; }
@@ -97,6 +104,8 @@
 
     private readonly string serverUrl = "http://localhost:5207/chatHub";
     private string token { get; set; } = string.Empty;
+    private string errorMessage { get; set; } = string.Empty;
+
 
     private User user { get; set; }
     private List<User> users { get; set; } = new List<User>();
@@ -414,10 +423,17 @@
 
     private async Task HandleGroupSelected(Group group)
     {
+        var result = await ChatApiService.GetGroupAsync(group.Id, token);
+        if (!result.IsSuccess)
+        {
+            errorMessage = result.ErrorMessage ?? "Error";
+            isError = true;
+            return;
+        }
         selectedGroupId = group.Id;
         selectedContactId = 0;
 
-        selectedGroup = await ChatApiService.GetGroupAsync(selectedGroupId, token);
+        selectedGroup = result.Data;
         group.UnviewedMessages = 0;
 
         if (selectedGroup == null)
@@ -435,10 +451,16 @@
 
     private async Task HandleContactSelected(Contact contact)
     {
+        var result = await ChatApiService.GetContactAsync(contact.AssociatedUserId, token);
+        if (!result.IsSuccess)
+        {
+            errorMessage = result.ErrorMessage ?? "Error";
+            isError = true;
+            return;
+        }
         selectedContactId = contact.Id;
         selectedGroupId = 0;
-
-        selectedContact = await ChatApiService.GetContactAsync(contact.AssociatedUserId, token);
+        selectedContact = result.Data;
         contact.UnviewedMessages = 0;
 
         if (selectedContact == null)
@@ -456,7 +478,14 @@
 
     private async Task CreateGroup(GroupCreateDto groupCreate)
     {
-        Group? group = await GroupApiService.CreateGroupAsync(groupCreate, token);
+        var result = await GroupApiService.CreateGroupAsync(groupCreate, token);
+        if (!result.IsSuccess)
+        {
+            errorMessage = result.ErrorMessage ?? "Group wasn't created";
+            isError = true;
+            return;
+        }
+        Group? group = result.Data;
         if (group != null)
         {
             user.Groups.Add(group);
@@ -469,7 +498,14 @@
 
     private async Task CreateContact(int userId)
     {
-        Contact? contact = await ContactApiService.CreateContactAsync(userId, token);
+        var result = await ContactApiService.CreateContactAsync(userId, token);
+        if (!result.IsSuccess)
+        {
+            errorMessage = result.ErrorMessage ?? "Contact wasn't created";
+            isError = true;
+            return;
+        }
+        Contact? contact = result.Data;
         if (contact != null)
         {
             user.Contacts.Add(contact);
@@ -484,7 +520,14 @@
     private async Task RemoveUserFromGroup(int userId)
     {
         if (selectedGroup == null) return;
-        bool result = await GroupApiService.RemoveUserFromGroup(selectedGroup.Id, userId, token);
+        var response = await GroupApiService.RemoveUserFromGroup(selectedGroup.Id, userId, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "User wasn't removed";
+            isError = true;
+            return;
+        }
+        bool result = response.Data;
         if (result)
         {
             await hubConnection.SendAsync("RemoveUserFromGroup", userId, selectedGroup.ChatId);
@@ -497,7 +540,14 @@
     private async Task LeaveGroup()
     {
         if (selectedGroup == null) return;
-        bool result = await GroupApiService.LeaveGroup(selectedGroup.Id, token);
+        var response = await GroupApiService.LeaveGroup(selectedGroup.Id, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "User wasn't removed";
+            isError = true;
+            return;
+        }
+        bool result = response.Data;
         if (result)
         {
             await hubConnection.SendAsync("RemoveUserFromGroup", user.Id, selectedGroup.ChatId);
@@ -511,7 +561,14 @@
     private async Task RemoveContact()
     {
         if(selectedContact == null) return;
-        bool result = await ContactApiService.RemoveContact(selectedContact.ChatId, token);
+        var response = await ContactApiService.RemoveContact(selectedContact.ChatId, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Contact wasn't removed";
+            isError = true;
+            return;
+        }
+        bool result = response.Data;
         if (result)
         {
             await hubConnection.SendAsync("RemoveContact", selectedContact.AssociatedUserId, selectedContact.ChatId);
@@ -528,7 +585,15 @@
 
         if (messageStorageDto.Id == 0) messageStorageDto = await MessageRepository.AddMessage(messageStorageDto);
 
-        Message? message = await ChatApiService.CreateMessageAsync(messageStorageDto, messageStorageDto.Files, token);
+        var response = await ChatApiService.CreateMessageAsync(messageStorageDto, messageStorageDto.Files, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Message wasn't sent";
+            isError = true;
+            if (response.StatusCode < 500) await MessageRepository.RemoveMessage(messageStorageDto.Id);
+            return;
+        }
+        Message? message = response.Data;
 
         await MessageRepository.RemoveMessage(messageStorageDto.Id);
 
@@ -562,21 +627,42 @@
 
     private async Task UpdateMessage(MessageStorageDto documentMessageChatId)
     {
-        Message? message = await ChatApiService.UpdateMessageAsync(documentMessageChatId, token);
+        var response = await ChatApiService.UpdateMessageAsync(documentMessageChatId, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Message wasn't updated";
+            isError = true;
+            return;
+        }
+        Message? message = response.Data;
         if (message != null) await hubConnection.SendAsync("UpdateMessage", message);
     }
 
 
     private async Task RemoveMessage(DocumentMessageChatId documentMessageChatId)
     {
-        bool result = await ChatApiService.DeleteMessageAsync(documentMessageChatId.MessageId, token);
+        var response = await ChatApiService.DeleteMessageAsync(documentMessageChatId.MessageId, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Message wasn't removed";
+            isError = true;
+            return;
+        }
+        bool result = response.Data;
         if (result) await hubConnection.SendAsync("RemoveMessage", documentMessageChatId.ChatId, documentMessageChatId.MessageId);
     }
 
 
     private async Task RemoveDocument(DocumentMessageChatId documentMessageChatId)
     {
-        bool result = await ChatApiService.DeleteDocumentAsync(documentMessageChatId.DocumentId, token);
+        var response = await ChatApiService.DeleteDocumentAsync(documentMessageChatId.DocumentId, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Document wasn't removed";
+            isError = true;
+            return;
+        }
+        bool result = response.Data;
         if (result) await hubConnection.SendAsync("DeleteDocument", documentMessageChatId.DocumentId, documentMessageChatId.MessageId, documentMessageChatId.ChatId);
     }
 
@@ -586,24 +672,45 @@
     {
         if(selectedGroup != null)
         {
-            User? user = await GroupApiService.AddUserToChatAsync(userId, selectedGroup.Id, token);
+            var response = await GroupApiService.AddUserToChatAsync(userId, selectedGroup.Id, token);
+            if (!response.IsSuccess)
+            {
+                errorMessage = response.ErrorMessage ?? "User wasn't added";
+                isError = true;
+                return;
+            }
+            User? user = response.Data;
             if (user != null) await hubConnection.SendAsync("AddUserToChat", user, selectedGroup);
         }
     }
 
 
-	public async Task AddAdmin(int userId)
-	{
-		if (selectedGroup != null)
-		{
-			await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
-		}
-	}
+    public async Task AddAdmin(int userId)
+    {
+        if (selectedGroup != null)
+        {
+            var response = await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
+            if (!response.IsSuccess)
+            {
+                errorMessage = response.ErrorMessage ?? "Admin wasn't added";
+                isError = true;
+                return;
+            }
+            await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
+        }
+    }
 
 
     public async Task DownloadFile(DownloadFileRequestDto downloadFileDto)
     {
-        DownloadFileResponseDto? downloadFileResponseDto = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
+        var response = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "File wasn't downloaded";
+            isError = true;
+            return;
+        }
+        DownloadFileResponseDto? downloadFileResponseDto = response.Data;
 
         if (downloadFileResponseDto == null) return;
 
@@ -693,7 +800,14 @@
 
     public async Task OpenAddingContact()
     {
-        users = await AuthApiService.GetUsersAsync();
+        var response = await AuthApiService.GetUsersAsync();
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Users weren't loaded";
+            isError = true;
+            return;
+        }
+		users = response.Data ?? new List<User>();
         if (users == null) return;
 		users.RemoveAll(u => user.Contacts.Any(c => c.AssociatedUserId == u.Id) || u.Id == user.Id);
 

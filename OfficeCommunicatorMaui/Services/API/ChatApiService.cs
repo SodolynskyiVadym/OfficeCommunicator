@@ -21,108 +21,128 @@ namespace OfficeCommunicatorMaui.Services.API
         }
 
 
-        public async Task<Group?> GetGroupAsync(int groupId, string token)
+        public async Task<ServerResponse<Group>> GetGroupAsync(int groupId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync(_url + $"/get-group/{groupId}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                Group? result = await response.Content.ReadFromJsonAsync<Group>();
-                return result;
+                var response = await _httpClient.GetAsync(_url + $"/get-group/{groupId}");
+                return new ServerResponse<Group>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to get group: {error}");
+                return new ServerResponse<Group>(null, 500, false, e.Message);
             }
         }
 
 
-        public async Task<Contact?> GetContactAsync(int associatedUserId, string token)
+        public async Task<ServerResponse<Contact>> GetContactAsync(int associatedUserId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync(_url + $"/get-contact/{associatedUserId}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                Contact? result = await response.Content.ReadFromJsonAsync<Contact>();
-                return result;
+                var response = await _httpClient.GetAsync(_url + $"/get-contact/{associatedUserId}");
+                return new ServerResponse<Contact>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to get contact: {error}");
+                return new ServerResponse<Contact>(null, 500, false, e.Message);
             }
         }
 
-        public async Task<Message?> CreateMessageAsync(MessageStorageDto message, List<IBrowserFile> files, string token)
+        public async Task<ServerResponse<Message>> CreateMessageAsync(MessageStorageDto message, List<IBrowserFile> files, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            using var content = new MultipartFormDataContent
+            try
             {
-                { JsonRequestConvert.ConvertToJsonRequest(message), "messageDtoJson" }
-            };
+                using var content = new MultipartFormDataContent
+                {
+                    { JsonRequestConvert.ConvertToJsonRequest(message), "messageDtoJson" }
+                };
 
-            foreach (var file in files)
-            {
-                var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-                content.Add(fileContent, "files", file.Name);
-            }
+                foreach (var file in files)
+                {
+                    var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                    content.Add(fileContent, "files", file.Name);
+                }
 
-            var response = await _httpClient.PostAsync(_url + "/create-message", content);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<Message>();
+                var response = await _httpClient.PostAsync(_url + "/create-message", content);
+                return new ServerResponse<Message>(response);
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                return new ServerResponse<Message>(null, 500, false, e.Message);
             }
         }
 
 
-        public async Task<Message?> UpdateMessageAsync(MessageStorageDto message, string token)
+        public async Task<ServerResponse<Message>> UpdateMessageAsync(MessageStorageDto message, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var response = await _httpClient.PostAsync(_url + "/update-message", JsonRequestConvert.ConvertToJsonRequest(message));
-            if (response.IsSuccessStatusCode) return await response.Content.ReadFromJsonAsync<Message>();
-            else return null;
-        }
-
-
-        public async Task<bool> DeleteMessageAsync(int messageId, string token)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.DeleteAsync(_url + $"/delete-message/{messageId}");
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<bool> DeleteDocumentAsync(int documentId, string token)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.DeleteAsync(_url + $"/delete-document/{documentId}");
-            if(!response.IsSuccessStatusCode) return false;
-            return await response.Content.ReadFromJsonAsync<bool>();
-        }
-
-
-
-        public async Task<DownloadFileResponseDto?> DownLoadFileAsync(string fileName, int messageId, int documentId, string token)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.GetAsync(_url + $"/download/{messageId}/{documentId}");
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var fileContent = await response.Content.ReadAsByteArrayAsync();
-                var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-                return new DownloadFileResponseDto(fileContent, fileName, contentType);
+                var response = await _httpClient.PostAsync(_url + "/update-message", JsonRequestConvert.ConvertToJsonRequest(message));
+                return new ServerResponse<Message>(response);
             }
-            else
+            catch (Exception e)
             {
-                Console.WriteLine("Failed to download file");
-                return null;
+                return new ServerResponse<Message>(null, 500, false, e.Message);
+            }
+        }
+
+
+        public async Task<ServerResponse<bool>> DeleteMessageAsync(int messageId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            try
+            {
+                var response = await _httpClient.DeleteAsync(_url + $"/delete-message/{messageId}");
+                return new ServerResponse<bool>(response);
+            }
+            catch (Exception e)
+            {
+                return new ServerResponse<bool>(false, 500, false, e.Message);
+            }
+        }
+
+        public async Task<ServerResponse<bool>> DeleteDocumentAsync(int documentId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            try
+            {
+                var response = await _httpClient.DeleteAsync(_url + $"/delete-document/{documentId}");
+                return new ServerResponse<bool>(response);
+            }
+            catch (Exception e)
+            {
+                return new ServerResponse<bool>(false, 500, false, e.Message);
+            }
+        }
+
+
+
+        public async Task<ServerResponse<DownloadFileResponseDto>> DownLoadFileAsync(string fileName, int messageId, int documentId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            try
+            {
+                var response = await _httpClient.GetAsync(_url + $"/download/{messageId}/{documentId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var fileContent = await response.Content.ReadAsByteArrayAsync();
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+                    var downloadFileResponse = new DownloadFileResponseDto(fileContent, fileName, contentType);
+                    return new ServerResponse<DownloadFileResponseDto>(downloadFileResponse, 200, true, null);
+                }
+                else
+                {
+                    return new ServerResponse<DownloadFileResponseDto>(null, (int)response.StatusCode, false, response.ReasonPhrase);
+                }
+            }
+            catch (Exception e)
+            {
+                return new ServerResponse<DownloadFileResponseDto>(null, 500, false, e.Message);
             }
         }
     }

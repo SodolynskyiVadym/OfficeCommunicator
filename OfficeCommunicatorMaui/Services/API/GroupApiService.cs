@@ -17,84 +17,78 @@ namespace OfficeCommunicatorMaui.Services.API
             _url = url + "/chat";
         }
 
-        public async Task<Group?> CreateGroupAsync(GroupCreateDto group, string token)
+        public async Task<ServerResponse<Group>> CreateGroupAsync(GroupCreateDto group, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.PostAsync(_url + "/create-group", JsonRequestConvert.ConvertToJsonRequest(group));
-            if (response.IsSuccessStatusCode)
+            try
             {
-                Group? result = await response.Content.ReadFromJsonAsync<Group>();
-                return result;
+                var response = await _httpClient.PostAsync(_url + "/create-group", JsonRequestConvert.ConvertToJsonRequest(group));
+                return new ServerResponse<Group>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to create group: {error}");
+                return new ServerResponse<Group>(null, 500, false, e.Message);
             }
         }
 
 
-        public async Task<User?> AddUserToChatAsync(int userId, int groupId, string token)
+        public async Task<ServerResponse<User>> AddUserToChatAsync(int userId, int groupId, string token)
         {
             var body = new { UserId = userId, GroupId = groupId };
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.PostAsync(_url + $"/add-user-to-group", JsonRequestConvert.ConvertToJsonRequest(body));
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return await response.Content.ReadFromJsonAsync<User>();
+                var response = await _httpClient.PostAsync(_url + $"/add-user-to-group", JsonRequestConvert.ConvertToJsonRequest(body));
+                return new ServerResponse<User>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to add user to chat: {error}");
+                return new ServerResponse<User>(null, 500, false, e.Message);
             }
         }
 
 
-        public async Task<bool> AddAdminAsync(int userId, int groupId, string token)
+        public async Task<ServerResponse<bool>> AddAdminAsync(int userId, int groupId, string token)
         {
             var body = new { UserId = userId, GroupId = groupId };
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.PostAsync(_url + $"/add-admin", JsonRequestConvert.ConvertToJsonRequest(body));
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return true;
+                var response = await _httpClient.PostAsync(_url + $"/add-admin", JsonRequestConvert.ConvertToJsonRequest(body));
+                return new ServerResponse<bool>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to add admin: {error}");
-            }
-        }
-
-
-        public async Task<bool> LeaveGroup(int groupId, string token)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.DeleteAsync(_url + $"/leave-group/{groupId}");
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-            else
-            {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to leave group: {error}");
+                return new ServerResponse<bool>(false, 500, false, e.Message);
             }
         }
 
-        public async Task<bool> RemoveUserFromGroup(int groupId, int userId, string token)
+
+        public async Task<ServerResponse<bool>> LeaveGroup(int groupId, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await _httpClient.DeleteAsync(_url + $"/remove-user-from-group/{groupId}/{userId}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return true;
+                var response = await _httpClient.DeleteAsync(_url + $"/leave-group/{groupId}");
+                return new ServerResponse<bool>(response);
             }
-            else
+            catch (Exception e)
             {
-                var error = response.ReasonPhrase;
-                throw new Exception($"Failed to leave group: {error}");
+                return new ServerResponse<bool>(false, 500, false, e.Message);
+            }
+        }
+
+        public async Task<ServerResponse<bool>> RemoveUserFromGroup(int groupId, int userId, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            try
+            {
+                var response = await _httpClient.DeleteAsync(_url + $"/remove-user-from-group/{groupId}/{userId}");
+                return new ServerResponse<bool>(response);
+            }
+            catch (Exception e)
+            {
+                return new ServerResponse<bool>(false, 500, false, e.Message);
             }
         }
     }
