@@ -74,7 +74,7 @@
 	public int UserId { get; set; }
 
 	[Parameter]
-	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
+	public EventCallback<MessageStorageModel> OnSendMessage { get; set; }
 
 	[Parameter]
 	public EventCallback OnRemoveContact { get; set; }
@@ -83,7 +83,7 @@
 	public EventCallback<DownloadFileRequestDto> OnDownloadFile { get; set; }
 
 	[Parameter]
-	public EventCallback<MessageStorageDto> OnUpdateMessage { get; set; }
+	public EventCallback<MessageStorageModel> OnUpdateMessage { get; set; }
 
 	[Parameter]
 	public EventCallback<DocumentMessageChatId> OnDeleteMessage { get; set; }
@@ -140,6 +140,7 @@
 
 				});
 		}
+		string uniqueIdentifier = Guid.NewGuid().ToString();
 
 		Contact.Chat.Messages.Add(new Message()
 		{
@@ -147,11 +148,13 @@
 			UserId = UserId,
 			ChatId = Contact.ChatId,
 			Date = DateTime.Now,
+			UniqueIdentifier = uniqueIdentifier,
 			Documents = documents
 		});
-		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Contact), Contact.ChatId, content, SelectedFiles));
-		SelectedFiles.Clear();
+		string copyContent = content;
 		content = string.Empty;
+		await OnSendMessage.InvokeAsync(new MessageStorageModel(UserId, uniqueIdentifier, Contact.ChatId, copyContent, nameof(Contact), SelectedFiles));
+		SelectedFiles.Clear();
 	}
 
 	private async Task DownloadFile(int fileId, int messageId, string fileName)
@@ -180,7 +183,15 @@
 		Message? message = Contact.Chat.Messages.FirstOrDefault(m => m.Id == updatingMessageId);
 		if (message != null)
 		{
-			await OnUpdateMessage.InvokeAsync(new MessageStorageDto() { Content = content, ChatId = Contact.ChatId, Id = updatingMessageId, UserId = UserId });
+			await OnUpdateMessage.InvokeAsync(new MessageStorageModel() 
+			{ 
+				Content = content, 
+				ChatId = Contact.ChatId, 
+				Id = updatingMessageId, 
+				UserId = UserId, 
+				UniqueIdentifier = message.UniqueIdentifier,
+				CommunicationType = nameof(Contact)
+			});
 
 			Contact.Chat.Messages.Remove(message);
 			message.Content = content;
@@ -200,7 +211,7 @@
 		Message? message = Contact.Chat.Messages.FirstOrDefault(m => m.Id == messageId);
 		if (message == null) return;
 		Contact.Chat.Messages.Remove(message);
-		await OnDeleteMessage.InvokeAsync(new DocumentMessageChatId(0, messageId, Contact.ChatId));
+		await OnDeleteMessage.InvokeAsync(new DocumentMessageChatId(0, messageId, Contact.ChatId, message.UniqueIdentifier));
 
 	}
 
@@ -211,7 +222,7 @@
 		var document = message.Documents.FirstOrDefault(d => d.Id == documentId);
 		if (document == null) return;
 
-		if (message.Documents.Count() == 1) await DeleteMessage(messageId);
+		if (message.Documents.Count() == 1 && string.IsNullOrEmpty(message.Content)) await DeleteMessage(messageId);
 		else
 		{
 			await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Contact.ChatId));

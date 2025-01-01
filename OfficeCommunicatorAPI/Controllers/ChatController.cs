@@ -94,6 +94,8 @@ public class ChatController : ControllerBase
     {
         MessageDto? messageDto = JsonConvert.DeserializeObject<MessageDto>(messageDtoJson);
         if (messageDto == null) return BadRequest("Invalid message");
+        Console.WriteLine($"Messege sent with content {messageDto.Content} and {files.Count()} files");
+
 
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
         messageDto.UserId = userId;

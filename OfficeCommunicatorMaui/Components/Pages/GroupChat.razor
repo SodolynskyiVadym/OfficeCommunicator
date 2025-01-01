@@ -1,5 +1,6 @@
 ﻿@inject ContactApiService ContactApiService
 @inject ChatApiService ChatApiService
+@inject IJSRuntime JSRuntime
 
 
 <div class="chat-container">
@@ -20,7 +21,7 @@
 
 	@if (isOpenedChat)
 	{
-		<div class="messages-container">
+		<div class="messages-container" @ref="MessagesContainer">
 			@foreach (var message in Group.Chat.Messages)
 			{
 				<div class="message-wrapper @(message.UserId == UserId ? "my-message" : "other-message")">
@@ -128,8 +129,6 @@
 
 
 
-
-
 @code {
 
 	[Parameter]
@@ -142,7 +141,7 @@
 	public List<Contact> Contacts { get; set; }
 
 	[Parameter]
-	public EventCallback<MessageStorageDto> OnSendMessage { get; set; }
+	public EventCallback<MessageStorageModel> OnSendMessage { get; set; }
 
 	[Parameter]
 	public EventCallback OnLeaveGroup { get; set; }
@@ -157,7 +156,7 @@
 	public EventCallback<int> OnCallGroup { get; set; }
 
 	[Parameter]
-	public EventCallback<MessageStorageDto> OnUpdateMessage { get; set; }
+	public EventCallback<MessageStorageModel> OnUpdateMessage { get; set; }
 
 	[Parameter]
 	public EventCallback<DocumentMessageChatId> OnDeleteMessage { get; set; }
@@ -170,6 +169,8 @@
 
 	[Parameter]
 	public EventCallback<int> OnAddAdmin { get; set; }
+
+	private ElementReference MessagesContainer;
 
 	private List<User> userContactsUnadded { get; set; }
 	public List<User> FilteredUserContactsUnadded { get; set; }
@@ -211,6 +212,19 @@
 		FilteredUserContactsUnadded = userContactsUnadded;
 	}
 
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await ScrollToBottom();
+		}
+	}
+
+	private async Task ScrollToBottom()
+	{
+		await JSRuntime.InvokeVoidAsync("scrollToBottom", MessagesContainer);
+	}
+
 
 	private async Task SendMessage()
 	{
@@ -226,17 +240,20 @@
 
 				});
 		}
+		string uniqueIdentifier = Guid.NewGuid().ToString();
 		Group.Chat.Messages.Add(new Message()
 			{
 				Content = content,
 				UserId = UserId,
 				ChatId = Group.ChatId,
 				Date = DateTime.Now,
+				UniqueIdentifier = uniqueIdentifier,
 				Documents = documents
 			});
-		await OnSendMessage.InvokeAsync(new MessageStorageDto(UserId, nameof(Group), Group.ChatId, content, SelectedFiles));
-
+		string copyContent = content;
 		content = string.Empty;
+		await OnSendMessage.InvokeAsync(new MessageStorageModel(UserId, uniqueIdentifier, Group.ChatId, copyContent, nameof(Group), SelectedFiles));
+		SelectedFiles.Clear();
 	}
 
 
@@ -305,7 +322,15 @@
 		Message? message = Group.Chat.Messages.FirstOrDefault(m => m.Id == updatingMessageId);
 		if (message != null)
 		{
-			await OnUpdateMessage.InvokeAsync(new MessageStorageDto() { Content = content, ChatId = Group.ChatId, Id = updatingMessageId, UserId = UserId });
+			await OnUpdateMessage.InvokeAsync(new MessageStorageModel()
+			{ 
+				Content = content, 
+				ChatId = Group.ChatId, 
+				Id = updatingMessageId, 
+				UserId = UserId, 
+				UniqueIdentifier = message.UniqueIdentifier,
+				CommunicationType = nameof(Group)
+			});
 
 			Group.Chat.Messages.Remove(message);
 			message.Content = content;
@@ -325,7 +350,7 @@
 		Message? message = Group.Chat.Messages.FirstOrDefault(m => m.Id == messageId);
 		if (message == null) return;
 		Group.Chat.Messages.Remove(message);
-		await OnDeleteMessage.InvokeAsync(new DocumentMessageChatId(0, messageId, Group.ChatId));
+		await OnDeleteMessage.InvokeAsync(new DocumentMessageChatId(0, messageId, Group.ChatId, message.UniqueIdentifier));
 
 	}
 
@@ -337,7 +362,7 @@
 		var document = message.Documents.FirstOrDefault(d => d.Id == documentId);
 		if (document == null) return;
 
-		if (message.Documents.Count() == 1) await DeleteMessage(messageId);
+		if (message.Documents.Count() == 1 && string.IsNullOrEmpty(message.Content)) await DeleteMessage(messageId);
 		else
 		{
 			await OnDeleteDocument.InvokeAsync(new DocumentMessageChatId(documentId, messageId, Group.ChatId));

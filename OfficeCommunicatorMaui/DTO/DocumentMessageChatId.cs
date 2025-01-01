@@ -11,12 +11,21 @@ namespace OfficeCommunicatorMaui.DTO
         public int DocumentId { get; set; }
         public int MessageId { get; set; }
         public int ChatId { get; set; }
+        public string? UniqueIdentifier { get; set; }
 
         public DocumentMessageChatId(int documentId, int messageId, int chatId)
         {
             DocumentId = documentId;
             MessageId = messageId;
             ChatId = chatId;
+        }
+
+        public DocumentMessageChatId(int documentId, int messageId, int chatId, string uniqueIdentifier)
+        {
+            DocumentId = documentId;
+            MessageId = messageId;
+            ChatId = chatId;
+            UniqueIdentifier = uniqueIdentifier;
         }
     }
 }

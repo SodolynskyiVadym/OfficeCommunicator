@@ -10,6 +10,6 @@
         public Chat Chat { get; set; }
         public List<User> Admins { get; set; }
         public List<User> Users { get; set; }
-
+        public DateTime? DateTime { get; set; }
     }
 }

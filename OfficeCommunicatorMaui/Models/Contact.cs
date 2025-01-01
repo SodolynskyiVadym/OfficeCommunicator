@@ -15,6 +15,7 @@ namespace OfficeCommunicatorMaui.Models
         public int UserId { get; set; }
         public int AssociatedUserId { get; set; }
         public User AssociatedUser { get; set; }
+        public DateTime? DateTime { get; set; }
 
         public override string? ToString()
         {

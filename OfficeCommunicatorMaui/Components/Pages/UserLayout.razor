@@ -31,7 +31,7 @@
         <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background-color: #f8d7da; color: #721c24; padding: 20px; border: 1px solid #f5c6cb; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); text-align: center;">
             <div>@errorMessage</div>
             <button style="margin-top: 15px; padding: 10px 20px; background-color: #f5c6cb; color: #721c24; border: none; border-radius: 4px; cursor: pointer;"
-                    @onclick="() => isError = false">
+            @onclick="() => isError = false">
                 Ok
             </button>
         </div>
@@ -68,13 +68,13 @@
                 @if (isGroupOpened)
                 {
                     <GroupChat Group="selectedGroup" OnAddUser="AddUserToGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile"
-                               OnSendMessage="SendMessage" OnAddAdmin="AddAdmin" Contacts="user.Contacts" UserId="user.Id" OnRemoveUserFromGroup="RemoveUserFromGroup"
-                               OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" OnLeaveGroup="LeaveGroup" />
+                    OnSendMessage="SendMessage" OnAddAdmin="AddAdmin" Contacts="user.Contacts" UserId="user.Id" OnRemoveUserFromGroup="RemoveUserFromGroup"
+                    OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" OnLeaveGroup="LeaveGroup" />
                 }
                 @if (isContactOpened)
                 {
                     <ContactChat Contact="selectedContact" UserId="user.Id" OnCallUser="CallUser" OnDownloadFile="DownloadFile" OnRemoveContact="RemoveContact"
-                                 OnSendMessage="SendMessage" OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
+                    OnSendMessage="SendMessage" OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" />
                 }
             }
         </div>
@@ -158,7 +158,7 @@
 
 
 
-        hubConnection.On<Message>("ReceiveMessage", async (message) =>
+        hubConnection.On<Message>("OnReceiveMessage", async (message) =>
         {
             if(selectedGroup == null || (selectedGroup.ChatId != message.ChatId))
             {
@@ -166,6 +166,7 @@
                 if (group != null)
                 {
                     group.UnviewedMessages++;
+					group.DateTime = DateTime.Now;
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -176,6 +177,7 @@
                 if (contact != null)
                 {
                     contact.UnviewedMessages++;
+					contact.DateTime = DateTime.Now;
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -183,12 +185,14 @@
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
                 selectedGroup.Chat.Messages.Add(message);
+				selectedGroup.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
 
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
             {
                 selectedContact.Chat.Messages.Add(message);
+				selectedContact.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
         });
@@ -274,7 +278,7 @@
 
 
 
-        hubConnection.On<int>("ReceiveUserCall", async (userId) =>
+        hubConnection.On<int>("OnReceiveUserCall", async (userId) =>
         {
             if (isCallingRequest) return;
 
@@ -292,7 +296,7 @@
         });
 
 
-        hubConnection.On<int, string>("ReceiveGroupCall", async (chatId, zoomUrl) =>
+        hubConnection.On<int, string>("OnReceiveGroupCall", async (chatId, zoomUrl) =>
         {
             if (isCallingRequest) return;
             string? groupName = user.Groups.FirstOrDefault(g => g.ChatId == chatId)?.Name;
@@ -305,7 +309,7 @@
         });
 
 
-        hubConnection.On<int>("RejectAnswer", async (userId) =>
+        hubConnection.On<int>("OnRejectAnswer", async (userId) =>
         {
             if (callRequest != null && callRequest.UserId != userId) return;
             CloseCalling();
@@ -313,7 +317,7 @@
         });
 
 
-        hubConnection.On<string>("ReceiveAnswer", async (identity) =>
+        hubConnection.On<string>("OnReceiveAnswer", async (identity) =>
         {
             CloseCalling();
             await InvokeAsync(StateHasChanged);
@@ -583,7 +587,7 @@
     }
 
 
-    private async Task SendMessage(MessageStorageDto messageStorageDto)
+    private async Task SendMessage(MessageStorageModel messageStorageDto)
     {
 
         if (messageStorageDto.Id == 0) messageStorageDto = await MessageRepository.AddMessage(messageStorageDto);
@@ -591,9 +595,8 @@
         var response = await ChatApiService.CreateMessageAsync(messageStorageDto, messageStorageDto.Files, token);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "Message wasn't sent";
-            isError = true;
             if (response.StatusCode < 500) await MessageRepository.RemoveMessage(messageStorageDto.Id);
+            if (string.IsNullOrEmpty(messageStorageDto.Content)) await MessageRepository.RemoveMessage(messageStorageDto.Id);
             return;
         }
         Message? message = response.Data;
@@ -612,6 +615,7 @@
                     .FirstOrDefault();
                 if (updatedMessage != null) selectedGroup.Chat.Messages.Remove(updatedMessage);
                 selectedGroup.Chat.Messages.Add(message);
+				selectedGroup.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
@@ -622,37 +626,47 @@
                     .FirstOrDefault();
                 if (updatedMessage != null) selectedContact.Chat.Messages.Remove(updatedMessage);
                 selectedContact.Chat.Messages.Add(message);
+                selectedContact.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
         }
         else return;
     }
 
-    private async Task UpdateMessage(MessageStorageDto documentMessageChatId)
+    private async Task UpdateMessage(MessageStorageModel documentMessageChatId)
     {
-        var response = await ChatApiService.UpdateMessageAsync(documentMessageChatId, token);
-        if (!response.IsSuccess)
+        if (!string.IsNullOrEmpty(documentMessageChatId.UniqueIdentifier)) await MessageRepository.UpdateMessage(documentMessageChatId);
+        else
         {
-            errorMessage = response.ErrorMessage ?? "Message wasn't updated";
-            isError = true;
-            return;
+            var response = await ChatApiService.UpdateMessageAsync(documentMessageChatId, token);
+            if (!response.IsSuccess)
+            {
+                errorMessage = response.ErrorMessage ?? "Message wasn't updated";
+                isError = true;
+                return;
+            }
+            Message? message = response.Data;
+            if (message != null) await hubConnection.SendAsync("UpdateMessage", message);
         }
-        Message? message = response.Data;
-        if (message != null) await hubConnection.SendAsync("UpdateMessage", message);
     }
 
 
     private async Task RemoveMessage(DocumentMessageChatId documentMessageChatId)
     {
-        var response = await ChatApiService.DeleteMessageAsync(documentMessageChatId.MessageId, token);
-        if (!response.IsSuccess)
+        if (!string.IsNullOrEmpty(documentMessageChatId.UniqueIdentifier)) await MessageRepository.RemoveMessage(documentMessageChatId.UniqueIdentifier);
+        else
         {
-            errorMessage = response.ErrorMessage ?? "Message wasn't removed";
-            isError = true;
-            return;
+            await MessageRepository.RemoveMessage(documentMessageChatId.MessageId);
+            var response = await ChatApiService.DeleteMessageAsync(documentMessageChatId.MessageId, token);
+            if (!response.IsSuccess)
+            {
+                errorMessage = response.ErrorMessage ?? "Message wasn't removed";
+                isError = true;
+                return;
+            }
+            bool result = response.Data;
+            if (result) await hubConnection.SendAsync("RemoveMessage", documentMessageChatId.ChatId, documentMessageChatId.MessageId);
         }
-        bool result = response.Data;
-        if (result) await hubConnection.SendAsync("RemoveMessage", documentMessageChatId.ChatId, documentMessageChatId.MessageId);
     }
 
 
@@ -699,7 +713,7 @@
                 isError = true;
                 return;
             }
-            await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
+            // await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
         }
     }
 

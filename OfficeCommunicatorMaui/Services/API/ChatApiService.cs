@@ -50,7 +50,7 @@ namespace OfficeCommunicatorMaui.Services.API
             }
         }
 
-        public async Task<ServerResponse<Message>> CreateMessageAsync(MessageStorageDto message, List<IBrowserFile> files, string token)
+        public async Task<ServerResponse<Message>> CreateMessageAsync(MessageStorageModel message, List<IBrowserFile> files, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             try
@@ -77,7 +77,7 @@ namespace OfficeCommunicatorMaui.Services.API
         }
 
 
-        public async Task<ServerResponse<Message>> UpdateMessageAsync(MessageStorageDto message, string token)
+        public async Task<ServerResponse<Message>> UpdateMessageAsync(MessageStorageModel message, string token)
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             try

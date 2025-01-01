@@ -1,23 +1,29 @@
-﻿<input type="text" class="search-field" @bind="SearchText" />
+﻿<input type="text" class="search-bar" placeholder="Enter name group or user" @bind="SearchText" />
 
 <div class="list">
     @foreach (var group in FilteredGroups)
     {
-            <div class="list-item" @onclick="() => OnGroupSelected.InvokeAsync(group)">
-                <img src="images/group.png" />
-                <div>@group.Name</div>
-                <div>@group.UnviewedMessages</div>
-				<div>@DateTime.Now.ToString("HH:mm")</div>
-            </div>
+        <div class="list-item" @onclick="() => OnGroupSelected.InvokeAsync(group)">
+            <img src="images/group.png" />
+            <div>@group.Name</div>
+            <div>@group.UnviewedMessages</div>
+            @if (group.DateTime != null)
+            {
+                <div>@group.DateTime.Value.ToString("HH:mm")</div>
+            }
+        </div>
     }
     @foreach (var contact in FilteredContacts)
     {
-            <div class="list-item" @onclick="() => OnContactSelected.InvokeAsync(contact)">
-                <img src="images/contact.png" />
-                <div>@contact.AssociatedUser.Name</div>
-                <div>@contact.UnviewedMessages</div>
-                <div>@DateTime.Now.ToString("HH:mm")</div>
-            </div>
+        <div class="list-item" @onclick="() => OnContactSelected.InvokeAsync(contact)">
+            <img src="images/contact.png" />
+            <div>@contact.AssociatedUser.Name</div>
+            <div>@contact.UnviewedMessages</div>
+            @if (contact.DateTime != null)
+            {
+                <div>@contact.DateTime.Value.ToString("HH:mm")</div>
+            }
+        </div>
     }
 </div>
 

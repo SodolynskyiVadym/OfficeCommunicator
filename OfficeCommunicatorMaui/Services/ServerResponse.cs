@@ -16,7 +16,7 @@ namespace OfficeCommunicatorMaui.Services
 
         public ServerResponse(HttpResponseMessage response)
         {
-            Data = response.Content.ReadFromJsonAsync<T>().Result;
+            if(Data is not bool) Data = response.Content.ReadFromJsonAsync<T>().Result;
             StatusCode = ((int)response.StatusCode);
             IsSuccess = response.IsSuccessStatusCode;
             ErrorMessage = response.ReasonPhrase;

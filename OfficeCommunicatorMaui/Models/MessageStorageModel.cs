@@ -1,28 +1,30 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Components.Forms;
-namespace OfficeCommunicatorMaui.DTO
+namespace OfficeCommunicatorMaui.Models
 {
-    public class MessageStorageDto
+    public class MessageStorageModel
     {
         public int Id { get; set; }
         public int UserId { get; set; }
         public string CommunicationType { get; set; }
+        public string UniqueIdentifier { get; set; }
         public int ChatId { get; set; }
         public string Content { get; set; }
 
         [NotMapped]
         public List<IBrowserFile> Files { get; set; } = new();
 
-        public MessageStorageDto(int userId, string communicationType, int chatId, string content, List<IBrowserFile> files)
+        public MessageStorageModel(int userId, string uniqueIdentifier, int chatId, string content, string communication, List<IBrowserFile> files)
         {
             UserId = userId;
-            CommunicationType = communicationType;
+            UniqueIdentifier = uniqueIdentifier;
             ChatId = chatId;
             Content = content;
+            CommunicationType = communication;
             Files = files;
         }
 
-        public MessageStorageDto()
+        public MessageStorageModel()
         {
         }
     }

@@ -35,6 +35,16 @@ body {
     font-size: 16px;
 }
 
+.search-bar {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    margin-top:20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
 .list {
     height: 900px;
     overflow-y: auto;

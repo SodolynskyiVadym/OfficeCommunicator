@@ -107,7 +107,7 @@ public class CommunicatorHub : Hub
         if (!int.TryParse(Context.User?.FindFirst("userId")?.Value, out var userId) || userId != message.UserId) return;
         if ((!await _groupChecker.CheckPermissionUser(userId, message.ChatId)) && (!await _contactChecker.CheckPermissionUser(userId, message.ChatId))) return;
 
-        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(message.ChatId)).SendAsync("ReceiveMessage", message);
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(message.ChatId)).SendAsync("OnReceiveMessage", message);
     }
 
 
@@ -137,24 +137,24 @@ public class CommunicatorHub : Hub
 
     public async Task CallUser(int userId, int callerUserId)
     {
-        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(callerUserId)).SendAsync("ReceiveUserCall", userId);
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(callerUserId)).SendAsync("OnReceiveUserCall", userId);
     }
 
     public async Task CallGroup(int chatId, string zoomUrl)
     {
-        await Clients.Group(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("ReceiveGroupCall", chatId, zoomUrl);
+        await Clients.OthersInGroup(GeneratorHubGroupName.GenerateChatName(chatId)).SendAsync("OnReceiveGroupCall", chatId, zoomUrl);
     }
 
     public async Task AnswerCall(int userId, string identity)
     {
         Console.WriteLine($"Identity is {identity}");
-        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(userId)).SendAsync("ReceiveAnswer", identity);
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(userId)).SendAsync("OnReceiveAnswer", identity);
     }
 
 
     public async Task RejectCall(int rejecterUserId, int callerUserId)
     {
-        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(callerUserId)).SendAsync("RejectAnswer", rejecterUserId);
+        await Clients.Group(GeneratorHubGroupName.GenerateUserGroupName(callerUserId)).SendAsync("OnRejectAnswer", rejecterUserId);
     }
 
 

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OfficeCommunicatorMaui.DTO;
+using OfficeCommunicatorMaui.Models;
 
 namespace OfficeCommunicatorMaui.Services
 {
@@ -7,7 +7,7 @@ namespace OfficeCommunicatorMaui.Services
     {
         private readonly string _dbPath;
         
-        public DbSet<MessageStorageDto> Messages { get; set; }
+        public DbSet<MessageStorageModel> Messages { get; set; }
 
 
         public SqliteDbContext(string dbPath)

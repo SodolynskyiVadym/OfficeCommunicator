@@ -1,4 +1,5 @@
 ﻿@inject AuthApiService AuthApiService
+@inject SecureStorageService SecureStorageService
 
 <div class="form">
     @if (isLogin)
@@ -50,6 +51,7 @@
             return;
         }
         token = response.Data.Token;
+        await SecureStorageService.SaveTokenAsync(token);
         if (token != null) await OnLogin.InvokeAsync(token);
     }
 
@@ -62,6 +64,7 @@
             return;
         }
 		token = response.Data.Token;
+		await SecureStorageService.SaveTokenAsync(token);
         if(token != null) await OnLogin.InvokeAsync(token);
     }
 

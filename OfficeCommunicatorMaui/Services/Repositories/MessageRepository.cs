@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OfficeCommunicatorMaui.DTO;
+using OfficeCommunicatorMaui.Models;
 
 namespace OfficeCommunicatorMaui.Services.Repositories
 {
@@ -13,21 +13,40 @@ namespace OfficeCommunicatorMaui.Services.Repositories
         }
 
 
-        public async Task<List<MessageStorageDto>> GetUnsentMessagesAsync()
+        public async Task<List<MessageStorageModel>> GetUnsentMessagesAsync()
         {
             return await _dbContext.Messages.ToListAsync();
         }
 
-        public async Task<MessageStorageDto> AddMessage(MessageStorageDto message)
+        public async Task<MessageStorageModel> AddMessage(MessageStorageModel message)
         {
             await _dbContext.AddAsync(message);
             await _dbContext.SaveChangesAsync();
             return message;
         }
 
+        public async Task<bool> UpdateMessage(MessageStorageModel messageDto)
+        {
+            if (messageDto == null) return false;
+            MessageStorageModel? message = await _dbContext.Messages.FirstOrDefaultAsync(m => m.UniqueIdentifier.Equals(messageDto.UniqueIdentifier));
+            if (message == null) return false;
+
+            if (!string.IsNullOrEmpty(message.Content)) message.Content = messageDto.Content;
+            return await _dbContext.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> RemoveMessage(string uniqueIdentifier)
+        {
+            MessageStorageModel? message = await _dbContext.Messages.FirstOrDefaultAsync(m => m.UniqueIdentifier.Equals(uniqueIdentifier));
+            if (message == null) return false;
+
+            _dbContext.Messages.Remove(message);
+            return await _dbContext.SaveChangesAsync() > 0;
+        }
+
         public async Task<bool> RemoveMessage(int id)
         {
-            MessageStorageDto? message = await _dbContext.Messages.FindAsync(id);
+            MessageStorageModel? message = await _dbContext.Messages.FindAsync(id);
             if (message == null) return false;
 
             _dbContext.Messages.Remove(message);
