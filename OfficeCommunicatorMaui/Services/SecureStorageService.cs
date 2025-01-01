@@ -21,22 +21,22 @@ namespace OfficeCommunicatorMaui.Services
             await SecureStorage.SetAsync(TokenKey, token);
         }
 
-        //public async Task<string?> GetTokenAsync()
-        //{
-        //    return await SecureStorage.GetAsync(TokenKey);
-        //}
-
         public async Task<string?> GetTokenAsync()
         {
-            return random switch
-            {
-                1 => jack,
-                2 => john,
-                _ => null
-            };
-
-            //return john;
+            return await SecureStorage.GetAsync(TokenKey);
         }
+
+        //public async Task<string?> GetTokenAsync()
+        //{
+        //    return random switch
+        //    {
+        //        1 => jack,
+        //        2 => john,
+        //        _ => null
+        //    };
+
+        //    //return john;
+        //}
 
 
 

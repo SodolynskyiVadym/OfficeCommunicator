@@ -1,0 +1,284 @@
+﻿
+
+
+
+
+
+@* @inject IJSRuntime JSRuntime
+
+<h3>VideoPage</h3>
+
+<button id="join-btn" @onclick="OnJoinStream">Join Stream</button>
+
+<div id="stream-wrapper">
+    <div id="video-streams"></div>
+
+    <div id="stream-controls">
+        <button id="leave-btn" @onclick="OnLeaveStream">Leave Stream</button>
+        <button id="mic-btn" @onclick="OnMicOn">Mic On</button>
+        <button id="camera-btn" @onclick="OnCameraOn">Camera on</button>
+    </div>
+</div>
+
+@code {
+    // private IRtcEngine _rtcEngine;
+    private const string APP_ID = "YOUR_APP_ID";
+    private const string CHANNEL_NAME = "testChannel";
+    private const string TOKEN = "YOUR_TEMP_TOKEN";
+
+
+    public async Task OnJoinStream()
+    {
+        await JSRuntime.InvokeVoidAsync(
+           "joinStream"
+           // downloadFileResponseDto.FileName,
+           // downloadFileResponseDto.ContentType,
+           // Convert.ToBase64String(downloadFileResponseDto.File)
+        );
+    }
+
+    public async Task OnLeaveStream()
+    {
+        await JSRuntime.InvokeVoidAsync(
+           "leaveAndRemoveLocalStream"
+           // downloadFileResponseDto.FileName,
+           // downloadFileResponseDto.ContentType,
+           // Convert.ToBase64String(downloadFileResponseDto.File)
+        );
+    }
+
+    public async Task OnMicOn()
+    {
+        await JSRuntime.InvokeVoidAsync(
+           "toggleMic"
+        // downloadFileResponseDto.FileName,
+        // downloadFileResponseDto.ContentType,
+        // Convert.ToBase64String(downloadFileResponseDto.File)
+        );
+    }
+
+    public async Task OnCameraOn()
+    {
+        await JSRuntime.InvokeVoidAsync(
+           "toggleCamera"
+        // downloadFileResponseDto.FileName,
+        // downloadFileResponseDto.ContentType,
+        // Convert.ToBase64String(downloadFileResponseDto.File)
+        );
+    }
+
+}
+
+@* <script>
+    const APP_ID = "8b1a88e0327747e399829f7cac96c38d"
+    const TOKEN = "007eJxTYFhi1cXNLslbPGU/X96zc9kHPh75saW7a4PvVdV/z1abygUrMFgkGSZaWKQaGBuZm5uYpxpbWloYWaaZJycmW5olG1ukrLyZlt4QyMigk5jEysgAgSA+C0NuYmYeAwMAZMQfuQ=="
+    const CHANNEL = "main"
+
+    const client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
+
+    let localTracks = []
+    let remoteUsers = {}
+
+    let joinAndDisplayLocalStream = async () => {
+
+        client.on('user-published', handleUserJoined)
+
+        client.on('user-left', handleUserLeft)
+
+        let UID = await client.join(APP_ID, CHANNEL, TOKEN, null)
+
+        localTracks = await AgoraRTC.createMicrophoneAndCameraTracks()
+
+        let player = `<div class="video-container" id="user-container-${UID}">
+                            <div class="video-player" id="user-${UID}"></div>
+                      </div>`
+        document.getElementById('video-streams').insertAdjacentHTML('beforeend', player)
+
+        localTracks[1].play(`user-${UID}`)
+
+        await client.publish([localTracks[0], localTracks[1]])
+    }
+
+    let joinStream = async () => {
+        await joinAndDisplayLocalStream()
+        document.getElementById('join-btn').style.display = 'none'
+        document.getElementById('stream-controls').style.display = 'flex'
+    }
+
+    let handleUserJoined = async (user, mediaType) => {
+        remoteUsers[user.uid] = user
+        await client.subscribe(user, mediaType)
+
+        if (mediaType === 'video'){
+            let player = document.getElementById(`user-container-${user.uid}`)
+            if (player != null){
+                player.remove()
+            }
+
+            player = `<div class="video-container" id="user-container-${user.uid}">
+                            <div class="video-player" id="user-${user.uid}"></div>
+                     </div>`
+            document.getElementById('video-streams').insertAdjacentHTML('beforeend', player)
+
+            user.videoTrack.play(`user-${user.uid}`)
+        }
+
+        if (mediaType === 'audio'){
+            user.audioTrack.play()
+        }
+    }
+
+    let handleUserLeft = async (user) => {
+        delete remoteUsers[user.uid]
+        document.getElementById(`user-container-${user.uid}`).remove()
+    }
+
+    let leaveAndRemoveLocalStream = async () => {
+        for(let i = 0; localTracks.length > i; i++){
+            localTracks[i].stop()
+            localTracks[i].close()
+        }
+
+        await client.leave()
+        document.getElementById('join-btn').style.display = 'block'
+        document.getElementById('stream-controls').style.display = 'none'
+        document.getElementById('video-streams').innerHTML = ''
+    }
+
+    let toggleMic = async (e) => {
+        if (localTracks[0].muted){
+            await localTracks[0].setMuted(false)
+            e.target.innerText = 'Mic on'
+            e.target.style.backgroundColor = 'cadetblue'
+        }else{
+            await localTracks[0].setMuted(true)
+            e.target.innerText = 'Mic off'
+            e.target.style.backgroundColor = '#EE4B2B'
+        }
+    }
+
+    let toggleCamera = async (e) => {
+        if(localTracks[1].muted){
+            await localTracks[1].setMuted(false)
+            e.target.innerText = 'Camera on'
+            e.target.style.backgroundColor = 'cadetblue'
+        }else{
+            await localTracks[1].setMuted(true)
+            e.target.innerText = 'Camera off'
+            e.target.style.backgroundColor = '#EE4B2B'
+        }
+    }
+
+    document.getElementById('join-btn').addEventListener('click', joinStream)
+    document.getElementById('leave-btn').addEventListener('click', leaveAndRemoveLocalStream)
+    document.getElementById('mic-btn').addEventListener('click', toggleMic)
+    document.getElementById('camera-btn').addEventListener('click', toggleCamera)
+</script> *@
+
+
+@* @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h3>Video Chat</h3>
+
+<div>
+    <video id="localVideo" autoplay playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+</div>
+
+<button @onclick="StartCall">Start Call</button>
+<button @onclick="AnswerCall">Answer Call</button>
+
+@code {
+    private async Task StartCall()
+    {
+        await JSRuntime.InvokeVoidAsync("startCamera", "localVideo");
+        await JSRuntime.InvokeVoidAsync("startConnection", NavigationManager.ToAbsoluteUri("/webrtcHub").ToString());
+        await JSRuntime.InvokeVoidAsync("createPeerConnection", "remoteVideo");
+        await JSRuntime.InvokeVoidAsync("createOffer");
+    }
+
+    private async Task AnswerCall()
+    {
+        await JSRuntime.InvokeVoidAsync("startCamera", "localVideo");
+        await JSRuntime.InvokeVoidAsync("startConnection", NavigationManager.ToAbsoluteUri("/webrtcHub").ToString());
+        await JSRuntime.InvokeVoidAsync("createPeerConnection", "remoteVideo");
+    }
+}
+
+
+<script>
+        let localStream;
+    let peerConnection;
+    let remoteStream;
+    let signalRConnection;
+
+    const config = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' } // STUN server
+        ]
+    };
+
+    export async function startConnection(hubUrl) {
+        signalRConnection = new signalR.HubConnectionBuilder()
+            .withUrl(hubUrl)
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        await signalRConnection.start();
+
+        signalRConnection.on('ReceiveOffer', async (offer) => {
+            await createAnswer(offer);
+        });
+
+        signalRConnection.on('ReceiveAnswer', async (answer) => {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        });
+
+        signalRConnection.on('ReceiveIceCandidate', async (candidate) => {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        });
+    }
+
+    export async function startCamera(videoElementId) {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById(videoElementId).srcObject = localStream;
+    }
+
+    export async function createPeerConnection(remoteVideoElementId) {
+        peerConnection = new RTCPeerConnection(config);
+
+        remoteStream = new MediaStream();
+        document.getElementById(remoteVideoElementId).srcObject = remoteStream;
+
+        localStream.getTracks().forEach((track) => {
+            peerConnection.addTrack(track, localStream);
+        });
+
+        peerConnection.ontrack = (event) => {
+            event.streams[0].getTracks().forEach((track) => {
+                remoteStream.addTrack(track);
+            });
+        };
+
+        peerConnection.onicecandidate = async (event) => {
+            if (event.candidate) {
+                await signalRConnection.invoke('SendIceCandidate', event.candidate);
+            }
+        };
+    }
+
+    export async function createOffer() {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await signalRConnection.invoke('SendOffer', offer);
+    }
+
+    export async function createAnswer(offer) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        await signalRConnection.invoke('SendAnswer', answer);
+    }
+
+</script> *@

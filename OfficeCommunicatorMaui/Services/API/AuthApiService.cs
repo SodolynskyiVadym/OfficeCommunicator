@@ -76,17 +76,17 @@ namespace OfficeCommunicatorMaui.Services.API
             //}
         }
 
-        public async Task<ServerResponse<string>> SignUp(string userName, string email, string uniqueName, string zoomUrl, string password)
+        public async Task<ServerResponse<LoginResponse>> SignUp(string userName, string email, string uniqueName, string zoomUrl, string password)
         {
             var signUpRequest = new { Email = email, Name = userName, UniqueName = uniqueName, ZoomUrl = zoomUrl, Password = password };
             try
             {
                 var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
-                return new ServerResponse<string>(response);
+                return new ServerResponse<LoginResponse>(response);
             }
             catch (Exception e)
             {
-                return new ServerResponse<string>(null, 500, false, e.Message);
+                return new ServerResponse<LoginResponse>(null, 500, false, e.Message);
             }
             //    var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
 

@@ -43,13 +43,25 @@
 
     private async Task SignUp()
     {
-        token = await AuthApiService.SignUp(userName, email, uniqueName, zoomUrl, password);
+        var response = await AuthApiService.SignUp(userName, email, uniqueName, zoomUrl, password);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Auth was failure";
+            return;
+        }
+        token = response.Data.Token;
         if (token != null) await OnLogin.InvokeAsync(token);
     }
 
     private async Task Login()
     {
-        token = await AuthApiService.LoginAsync(email, password);
+        var response = await AuthApiService.LoginAsync(email, password);
+        if (!response.IsSuccess)
+        {
+            errorMessage = response.ErrorMessage ?? "Auth was failure";
+            return;
+        }
+		token = response.Data.Token;
         if(token != null) await OnLogin.InvokeAsync(token);
     }
 
