@@ -166,7 +166,7 @@
                 if (group != null)
                 {
                     group.UnviewedMessages++;
-					group.DateTime = DateTime.Now;
+                    group.DateTime = DateTime.Now;
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -177,7 +177,7 @@
                 if (contact != null)
                 {
                     contact.UnviewedMessages++;
-					contact.DateTime = DateTime.Now;
+                    contact.DateTime = DateTime.Now;
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -185,14 +185,14 @@
             if (selectedGroup != null && selectedGroup.ChatId == message.ChatId)
             {
                 selectedGroup.Chat.Messages.Add(message);
-				selectedGroup.DateTime = DateTime.Now;
+                selectedGroup.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
 
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
             {
                 selectedContact.Chat.Messages.Add(message);
-				selectedContact.DateTime = DateTime.Now;
+                selectedContact.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
         });
@@ -488,7 +488,7 @@
         var result = await GroupApiService.CreateGroupAsync(groupCreate, token);
         if (!result.IsSuccess)
         {
-            errorMessage = result.ErrorMessage ?? "Group wasn't created";
+            errorMessage = "Group wasn't created";
             isError = true;
             return;
         }
@@ -508,7 +508,7 @@
         var result = await ContactApiService.CreateContactAsync(userId, token);
         if (!result.IsSuccess)
         {
-            errorMessage = result.ErrorMessage ?? "Contact wasn't created";
+            errorMessage = "Contact wasn't created";
             isError = true;
             return;
         }
@@ -530,7 +530,7 @@
         var response = await GroupApiService.RemoveUserFromGroup(selectedGroup.Id, userId, token);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "User wasn't removed";
+            errorMessage = "User wasn't removed";
             isError = true;
             return;
         }
@@ -550,12 +550,11 @@
         var response = await GroupApiService.LeaveGroup(selectedGroup.Id, token);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "User wasn't removed";
+            errorMessage = "User wasn't removed";
             isError = true;
             return;
         }
-        bool result = response.Data;
-        if (result)
+        else
         {
             await hubConnection.SendAsync("RemoveUserFromGroup", user.Id, selectedGroup.ChatId);
             isGroupOpened = false;
@@ -571,12 +570,11 @@
         var response = await ContactApiService.RemoveContact(selectedContact.ChatId, token);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "Contact wasn't removed";
+            errorMessage = "Contact wasn't removed";
             isError = true;
             return;
         }
-        bool result = response.Data;
-        if (result)
+        else
         {
             await hubConnection.SendAsync("RemoveContact", selectedContact.AssociatedUserId, selectedContact.ChatId);
             isContactOpened = false;
@@ -615,7 +613,7 @@
                     .FirstOrDefault();
                 if (updatedMessage != null) selectedGroup.Chat.Messages.Remove(updatedMessage);
                 selectedGroup.Chat.Messages.Add(message);
-				selectedGroup.DateTime = DateTime.Now;
+                selectedGroup.DateTime = DateTime.Now;
                 await InvokeAsync(StateHasChanged);
             }
             else if (selectedContact != null && selectedContact.ChatId == message.ChatId)
@@ -641,7 +639,7 @@
             var response = await ChatApiService.UpdateMessageAsync(documentMessageChatId, token);
             if (!response.IsSuccess)
             {
-                errorMessage = response.ErrorMessage ?? "Message wasn't updated";
+                errorMessage = "Message wasn't updated";
                 isError = true;
                 return;
             }
@@ -660,12 +658,11 @@
             var response = await ChatApiService.DeleteMessageAsync(documentMessageChatId.MessageId, token);
             if (!response.IsSuccess)
             {
-                errorMessage = response.ErrorMessage ?? "Message wasn't removed";
+                errorMessage = "Message wasn't removed";
                 isError = true;
                 return;
             }
-            bool result = response.Data;
-            if (result) await hubConnection.SendAsync("RemoveMessage", documentMessageChatId.ChatId, documentMessageChatId.MessageId);
+            if (response.IsSuccess) await hubConnection.SendAsync("RemoveMessage", documentMessageChatId.ChatId, documentMessageChatId.MessageId);
         }
     }
 
@@ -675,12 +672,11 @@
         var response = await ChatApiService.DeleteDocumentAsync(documentMessageChatId.DocumentId, token);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "Document wasn't removed";
+            errorMessage = "Document wasn't removed";
             isError = true;
             return;
         }
-        bool result = response.Data;
-        if (result) await hubConnection.SendAsync("DeleteDocument", documentMessageChatId.DocumentId, documentMessageChatId.MessageId, documentMessageChatId.ChatId);
+        if (response.IsSuccess) await hubConnection.SendAsync("DeleteDocument", documentMessageChatId.DocumentId, documentMessageChatId.MessageId, documentMessageChatId.ChatId);
     }
 
 
@@ -692,7 +688,7 @@
             var response = await GroupApiService.AddUserToChatAsync(userId, selectedGroup.Id, token);
             if (!response.IsSuccess)
             {
-                errorMessage = response.ErrorMessage ?? "User wasn't added";
+                errorMessage = "User wasn't added";
                 isError = true;
                 return;
             }
@@ -709,11 +705,10 @@
             var response = await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
             if (!response.IsSuccess)
             {
-                errorMessage = response.ErrorMessage ?? "Admin wasn't added";
+                errorMessage = "Admin wasn't added";
                 isError = true;
                 return;
             }
-            // await GroupApiService.AddAdminAsync(userId, selectedGroup.Id, token);
         }
     }
 
@@ -723,7 +718,7 @@
         var response = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "File wasn't downloaded";
+            errorMessage = "File wasn't downloaded";
             isError = true;
             return;
         }
@@ -757,7 +752,11 @@
 
     public async Task CallGroup(int chatId)
     {
-        if (!isCallingRequest) await hubConnection.SendAsync("CallGroup", chatId, user.ZoomUrl);
+        if (!isCallingRequest)
+        {
+            await hubConnection.SendAsync("CallGroup", chatId, user.ZoomUrl);
+            await Launcher.OpenAsync(user.ZoomUrl);
+        }
     }
 
 
@@ -768,8 +767,17 @@
         if (!string.IsNullOrEmpty(call.ZoomUrl)) await Launcher.OpenAsync(call.ZoomUrl);
         else
         {
-            await hubConnection.SendAsync("AnswerCall", call.UserId, user.AzureIdentity);
-            await Launcher.OpenAsync($"http://localhost:8080?token={user.AzureToken}");
+			try
+			{
+                await hubConnection.SendAsync("AnswerCall", call.UserId, user.AzureIdentity);
+                await Launcher.OpenAsync($"http://localhost:8080?token={user.AzureToken}");
+			}
+			catch (Exception ex)
+			{
+				errorMessage = "Happaned error during calling";
+				isError = true;
+			}
+
         }
         await InvokeAsync(StateHasChanged);
     }
@@ -820,7 +828,7 @@
         var response = await AuthApiService.GetUsersAsync();
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "Users weren't loaded";
+            errorMessage = "Users weren't loaded";
             isError = true;
             return;
         }

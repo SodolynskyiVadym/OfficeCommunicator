@@ -70,6 +70,10 @@
 						<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
 					}
 				</div>
+				@foreach (var file in SelectedFiles)
+				{
+					<p>@file.Name</p>
+				}
 			}
 		</div>
 	}

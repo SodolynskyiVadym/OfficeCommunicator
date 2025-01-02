@@ -47,7 +47,7 @@
         var response = await AuthApiService.SignUp(userName, email, uniqueName, zoomUrl, password);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "Auth was failure";
+            errorMessage = "Auth was failure";
             return;
         }
         token = response.Data.Token;
@@ -60,7 +60,7 @@
         var response = await AuthApiService.LoginAsync(email, password);
         if (!response.IsSuccess)
         {
-            errorMessage = response.ErrorMessage ?? "Auth was failure";
+            errorMessage = "Auth was failure";
             return;
         }
 		token = response.Data.Token;

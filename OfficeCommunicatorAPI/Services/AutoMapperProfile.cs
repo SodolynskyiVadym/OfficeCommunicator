@@ -9,6 +9,7 @@ namespace OfficeCommunicatorAPI.Services
         public AutoMapperProfile()
         {
             CreateMap<User, UserDto>();
+            CreateMap<User, UserUpdateDto>();
             
             CreateMap<(UserDto, byte[][] passwordData), User>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Item1.Name))

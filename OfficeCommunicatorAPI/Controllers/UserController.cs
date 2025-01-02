@@ -82,7 +82,9 @@ namespace OfficeCommunicatorAPI.Controllers
         {
             User? user = await _userRepository.GetByEmailAsync(userDto);
             if (user == null) return BadRequest("User not found");
-            
+            user.AzureToken = await _acService.UpdateToken(user.AzureIdentity);
+            await _userRepository.UpdateAsync(_mapper.Map<UserUpdateDto>(user));
+
             string token = _authHelper.CreateToken(user);
             return Ok(new Dictionary<string, string>() { { "token", token } });
         }

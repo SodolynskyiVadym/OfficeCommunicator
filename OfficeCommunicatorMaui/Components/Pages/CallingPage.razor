@@ -1,7 +1,8 @@
-﻿<div>
-	<p>@Call.UserName</p>
-	<button @onclick="() => OnCancel.InvokeAsync(Call)">Cancel</button>
+﻿<div class="call-container">
+	<p class="call-username">@Call.UserName</p>
+	<button class="cancel-button" @onclick="() => OnCancel.InvokeAsync(Call)">Cancel</button>
 </div>
+
 
 
 @code {

@@ -10,6 +10,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=DockerEnv
       - DATABASE_CONNECTION_STRING=Server=mssql-server;User Id=SA;Password=Test1234;TrustServerCertificate=True;
+      - AZURITE_BLOB_STORAGE=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      - JWT_KEY=VerySecretKeyForOfficeCommunicatorAPIThatHaveToBeLongAndSecureForEncodingUserToken
+      - PASSWORD_KEY=AnotherVerySecretKeyForOfficeCommunicatorAPIThatHaveToBeLongAndSecureForEncodingPassword
+      - ACS_CONNECTION_STRING= endpoint=https://officecommunicatorvideoservice.germany.communication.azure.com/;accesskey=6H8e6vJOgfqfJNNZFCljzpT1H17OzDNSSoXxbZw8ObtJXsDkDJ7AJQQJ99ALACULyCpkvKWKAAAAAZCS3pvG
     ports:
       - "5207:5207"
     depends_on:
