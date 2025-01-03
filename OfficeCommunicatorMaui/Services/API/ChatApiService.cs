@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
-using OfficeCommunicatorMaui.DTO;
 using OfficeCommunicatorMaui.Models;
 using Contact = OfficeCommunicatorMaui.Models.Contact;
 

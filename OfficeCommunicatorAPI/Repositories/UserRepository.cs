@@ -70,17 +70,16 @@ namespace OfficeCommunicatorAPI.Repositories
             User? user = await _dbContext.Users.FindAsync(userDto.Id);
             if (user == null) return false;
 
-
             user.Name = userDto.Name ?? user.Name;
             user.AzureToken = userDto.AzureToken ?? user.AzureToken;
-            
-            if(userDto.Password != null)
+            user.ZoomUrl = userDto.ZoomUrl ?? user.ZoomUrl;
+
+            if (userDto.Password != null)
             {
                 byte[][] passwordData = _authHelper.EncryptUserPassword(userDto.Password);
                 user.PasswordHash = passwordData[0];
                 user.PasswordSalt = passwordData[1];
             }
-            
             int result = await _dbContext.SaveChangesAsync();
             return result > 0;
         }

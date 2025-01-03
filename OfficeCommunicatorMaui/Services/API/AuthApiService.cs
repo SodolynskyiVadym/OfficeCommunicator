@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using OfficeCommunicatorMaui.DTO;
 using OfficeCommunicatorMaui.Models;
 
 namespace OfficeCommunicatorMaui.Services.API
@@ -41,14 +42,6 @@ namespace OfficeCommunicatorMaui.Services.API
             {
                 return new ServerResponse<List<User>>(null, 500, false, e.Message);
             }
-            //    if (response.IsSuccessStatusCode)
-            //{
-            //    return await response.Content.ReadFromJsonAsync<List<User>>();
-            //}
-            //else
-            //{
-            //    throw new Exception("Failed to get users");
-            //}
         }
 
         public async Task<ServerResponse<LoginResponse>> LoginAsync(string username, string password)
@@ -63,17 +56,6 @@ namespace OfficeCommunicatorMaui.Services.API
             {
                 return new ServerResponse<LoginResponse>(null, 500, false, e.Message);
             }
-            //    var response = await _httpClient.PostAsync(_url + "/login", JsonRequestConvert.ConvertToJsonRequest(loginRequest));
-            //if (response.IsSuccessStatusCode)
-            //{
-            //    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            //    return result?.Token;
-            //}
-            //else
-            //{
-            //    var error = await response.Content.ReadAsStringAsync();
-            //    throw new Exception($"Login failed: {error}");
-            //}
         }
 
         public async Task<ServerResponse<LoginResponse>> SignUp(string userName, string email, string uniqueName, string zoomUrl, string password)
@@ -88,23 +70,26 @@ namespace OfficeCommunicatorMaui.Services.API
             {
                 return new ServerResponse<LoginResponse>(null, 500, false, e.Message);
             }
-            //    var response = await _httpClient.PostAsync(_url + "/signup", JsonRequestConvert.ConvertToJsonRequest(signUpRequest));
-
-            //if (response.IsSuccessStatusCode)
-            //{
-            //    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            //    return result?.Token;
-            //}
-            //else
-            //{
-            //    var error = await response.Content.ReadAsStringAsync();
-            //    throw new Exception($"Registration failed: {error}");
-            //}
         }
-    }
 
-    public class LoginResponse
-    {
-        public string Token { get; set; }
+
+        public async Task<ServerResponse<bool>> UpdateUserAsync(UserUpdateDto userUpdate, string token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            try
+            {
+                var response = await _httpClient.PostAsync(_url + "/update", JsonRequestConvert.ConvertToJsonRequest(userUpdate));
+                return new ServerResponse<bool>(response);
+            }
+            catch (Exception e)
+            {
+                return new ServerResponse<bool>(false, 500, false, e.Message);
+            }
+        }
+
+        public class LoginResponse
+        {
+            public string Token { get; set; }
+        }
     }
 }

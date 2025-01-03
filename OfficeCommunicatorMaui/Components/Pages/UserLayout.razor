@@ -39,13 +39,14 @@
 
     <div style="display: flex;">
         <div style="width:5%; text-align:center; margin-top: 30px;">
-            <img class="img-action" src="images/chat.png" @onclick="OpenChat" />
-            <img class="img-action" src="images/add-user.png" @onclick="OpenAddingContact" />
-            <img class="img-action" src="images/add-group.png" @onclick="OpenCreatingGroup" />
-            <img class="img-action" src="images/logout.png" @onclick="ExitUserPage" />
+            <img class="img-action" src="images/chat.png" @onclick="() => OpenWindow(0)" />
+            <img class="img-action" src="images/add-user.png" @onclick="() => OpenWindow(1)" />
+            <img class="img-action" src="images/add-group.png" @onclick="() => OpenWindow(2)" />
+            <img class="img-action" src="images/edit-user.png" @onclick="() => OpenWindow(3)" />
+            <img class="img-action" src="images/logout.png" @onclick="() => OpenWindow(4)" />
         </div>
 
-        @if (isChatOpened)
+        @if (openedWindow == 0)
         {
             <div style="width:20%; text-align:center">
                 <NavMenu Groups="user.Groups" Contacts="user.Contacts" OnGroupSelected="HandleGroupSelected" OnContactSelected="HandleContactSelected" />
@@ -53,17 +54,22 @@
         }
 
         <div style="width:70%; padding-left:5%">
-            @if (isGroupCreating)
-            {
-                <CreateGroupPage OnCreateGroup="CreateGroup"></CreateGroupPage>
-            }
-
-            @if (isAddingContactOpened)
+            @if (openedWindow == 1)
             {
                 <AddContactPage Users="users" OnAddContact="CreateContact"></AddContactPage>
             }
 
-            @if (isChatOpened)
+            @if (openedWindow == 2)
+            {
+                <CreateGroupPage OnCreateGroup="CreateGroup"></CreateGroupPage>
+            }
+
+            @if (openedWindow == 3)
+            {
+                <UpdateUserPage user="user" OnUpdate="UpdateUser"></UpdateUserPage>
+            }
+
+            @if (openedWindow == 0)
             {
                 @if (isGroupOpened)
                 {
@@ -93,12 +99,14 @@
     private bool isContactOpened {get;set ; }
     private bool isGroupCreating { get; set; }
     private bool isAddingContactOpened { get; set; }
+    private bool isUpdatingUser { get; set; }
     private bool isCallingRequest { get; set; }
     private bool isCalling { get; set; }
     private bool isError { get; set; }
 
     private int selectedGroupId { get; set; }
     private int selectedContactId { get; set; }
+    private int openedWindow { get; set; }
 
     private Group? selectedGroup { get; set; }
     private Contact? selectedContact { get; set; }
@@ -713,6 +721,25 @@
     }
 
 
+    public async Task UpdateUser(UserUpdateDto userUpdate)
+    {
+        var response = await AuthApiService.UpdateUserAsync(userUpdate, token);
+        if (!response.IsSuccess)
+        {
+            errorMessage = "User wasn't updated";
+            isError = true;
+            return;
+        }
+        else
+        {
+			user.Name = userUpdate.Name ?? user.Name;
+			user.ZoomUrl = userUpdate.ZoomUrl ?? user.ZoomUrl;
+			openedWindow = 0;
+			await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
     public async Task DownloadFile(DownloadFileRequestDto downloadFileDto)
     {
         var response = await ChatApiService.DownLoadFileAsync(downloadFileDto.FileName, downloadFileDto.MessageId, downloadFileDto.DocumentId, token);
@@ -767,16 +794,16 @@
         if (!string.IsNullOrEmpty(call.ZoomUrl)) await Launcher.OpenAsync(call.ZoomUrl);
         else
         {
-			try
-			{
+            try
+            {
                 await hubConnection.SendAsync("AnswerCall", call.UserId, user.AzureIdentity);
                 await Launcher.OpenAsync($"http://localhost:8080?token={user.AzureToken}");
-			}
-			catch (Exception ex)
-			{
-				errorMessage = "Happaned error during calling";
-				isError = true;
-			}
+            }
+            catch (Exception ex)
+            {
+                errorMessage = "Happaned error during calling";
+                isError = true;
+            }
 
         }
         await InvokeAsync(StateHasChanged);
@@ -832,9 +859,9 @@
             isError = true;
             return;
         }
-		users = response.Data ?? new List<User>();
+        users = response.Data ?? new List<User>();
         if (users == null) return;
-		users.RemoveAll(u => user.Contacts.Any(c => c.AssociatedUserId == u.Id) || u.Id == user.Id);
+        users.RemoveAll(u => user.Contacts.Any(c => c.AssociatedUserId == u.Id) || u.Id == user.Id);
 
         isAddingContactOpened = true;
         isChatOpened = false;
@@ -849,6 +876,12 @@
         isChatOpened = true;
         isGroupCreating = false;
         await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OpenWindow(int openedWindowId)
+    {
+        openedWindow = openedWindowId;
+		await InvokeAsync(StateHasChanged);
     }
 
 

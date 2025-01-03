@@ -1,0 +1,43 @@
+﻿<div class="form">
+
+    <input type="text" placeholder="Username" @bind="name" />
+    <input type="text" placeholder="Username" @bind="zoomUrl" />
+    <input type="password" placeholder="Password" @bind="password" />
+    <button @onclick="() => Update()">Update</button>
+    <p>@errorMessage</p>
+</div>
+
+
+
+@code {
+    [Parameter]
+	public User user { get; set; } = new User();
+
+    [Parameter]
+    public EventCallback<UserUpdateDto> OnUpdate { get; set; }
+
+    private string password { get; set; } = string.Empty;
+    private string name { get; set; } = string.Empty;
+    private string zoomUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnLogin { get; set; }
+
+    private string? token { get; set; } = string.Empty;
+    private string errorMessage { get; set; } = string.Empty;
+
+    protected async override Task OnInitializedAsync()
+    {
+        name = user.Name;
+        zoomUrl = user.ZoomUrl;
+    }
+
+
+    private async Task Update()
+    {
+        if (user.Name.Equals(name) && user.ZoomUrl.Equals(zoomUrl) && string.IsNullOrEmpty(password)) return;
+        if (!string.IsNullOrEmpty(password) && password.Length < 5) return;
+        var user = new UserUpdateDto(name, zoomUrl, password);
+		await OnUpdate.InvokeAsync(user);
+    }
+}

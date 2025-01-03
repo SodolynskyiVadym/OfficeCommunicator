@@ -66,8 +66,9 @@ public class OfficeDbContext : DbContext
             .HasMany<Message>(c => c.Messages)
             .WithOne()
             .HasForeignKey(m => m.ChatId)
-            .HasPrincipalKey(c => c.Id);
-        
+            .HasPrincipalKey(c => c.Id)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<Chat>()
             .HasMany<Contact>()
             .WithOne(c => c.Chat)

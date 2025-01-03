@@ -1,4 +1,4 @@
-﻿namespace OfficeCommunicatorMaui.DTO
+﻿namespace OfficeCommunicatorMaui.Models
 {
     public class CallInfo
     {

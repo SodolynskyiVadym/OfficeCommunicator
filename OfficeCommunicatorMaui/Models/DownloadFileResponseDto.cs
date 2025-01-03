@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OfficeCommunicatorMaui.DTO
+namespace OfficeCommunicatorMaui.Models
 {
     public class DownloadFileResponseDto
     {
