@@ -78,8 +78,9 @@ public class OfficeDbContext : DbContext
         modelBuilder.Entity<Group>()
             .HasOne<Chat>(g => g.Chat)
             .WithOne()
-            .HasForeignKey<Group>(g => g.ChatId);
-        
+            .HasForeignKey<Group>(g => g.ChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<Message>()
             .HasOne(m => m.User)
             .WithMany()

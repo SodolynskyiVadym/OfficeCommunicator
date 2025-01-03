@@ -7,7 +7,6 @@
         <input type="text" placeholder="Username" @bind="email" />
         <input type="password" placeholder="Password" @bind="password" />
         <p>@errorMessage</p>
-        <p>@token</p>
         <button @onclick="Login">Login</button>
     }
     else
@@ -18,10 +17,8 @@
         <input type="text" placeholder="Your zoom url" @bind="zoomUrl" />
         <input type="password" placeholder="Password" @bind="password" />
         <button @onclick="SignUp">Signup</button>
+        <p>@errorMessage</p>
     }
-
-    <p>@errorMessage</p>
-    <p>@token</p>
     <button @onclick="ToggleLoginSignup">Toggle</button>
 </div>
 

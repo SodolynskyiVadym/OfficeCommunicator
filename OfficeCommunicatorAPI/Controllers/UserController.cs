@@ -27,12 +27,13 @@ namespace OfficeCommunicatorAPI.Controllers
 
         [Authorize]
         [HttpGet("get")]
-        public async Task<UserPresentDto?> Get()
+        public async Task<User?> Get()
         {
             bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
             if (!result) return null;
-            
-            return await _userRepository.GetUserPresentByIdWithIncludeAsync(userId);
+            User? user = await _userRepository.GetByIdWithIncludeAsync(userId);
+            user?.HideSensitiveData();
+            return user;
         }
 
 
@@ -43,7 +44,7 @@ namespace OfficeCommunicatorAPI.Controllers
             bool result = int.TryParse(User.FindFirst("userId")?.Value, out var userId);
             if (!result) return BadRequest("Invalid user id");
 
-            UserPresentDto? user = await _userRepository.GetUserPresentByIdWithIncludeAsync(userId);
+            User? user = await _userRepository.GetByIdWithIncludeAsync(userId);
             if (user == null) return BadRequest("User not found");
 
             return Ok(new { user.Groups, user.Contacts });
@@ -53,7 +54,9 @@ namespace OfficeCommunicatorAPI.Controllers
         [HttpGet("getAll")]
         public async Task<IActionResult> GetAll()
         {
-            return Ok(await _userRepository.GetAllAsync());
+            List<User> users = await _userRepository.GetAllAsync();
+            foreach (var user in users) user.HideSensitiveData();
+            return Ok(users);
         }
 
         
@@ -62,11 +65,9 @@ namespace OfficeCommunicatorAPI.Controllers
         {
             if(!_authHelper.IsEmail(userDto.Email)) return BadRequest("Invalid email");
             if(_authHelper.IsEmail(userDto.UniqueName)) return BadRequest("Invalid nickname");
-            if(userDto.Password.Length < 8) return BadRequest("Password must be at least 8 characters long");
+            if(userDto.Password.Length < 5) return BadRequest("Password must be at least 5 characters long");
 
             (userDto.AzureIdentity, userDto.AzureToken) = await _acService.CreateUserAsync();
-            Console.WriteLine($"Identity {userDto.AzureIdentity}");
-            Console.WriteLine($"Token {userDto.AzureToken}");
 
 
             User user = await _userRepository.AddAsync(userDto);
@@ -82,6 +83,9 @@ namespace OfficeCommunicatorAPI.Controllers
         {
             User? user = await _userRepository.GetByEmailAsync(userDto);
             if (user == null) return BadRequest("User not found");
+
+            if (!_authHelper.CheckPassword(userDto.Password, user.PasswordHash, user.PasswordSalt)) return BadRequest("Invalid password");
+
             user.AzureToken = await _acService.UpdateToken(user.AzureIdentity);
             await _userRepository.UpdateAsync(_mapper.Map<UserUpdateDto>(user));
 

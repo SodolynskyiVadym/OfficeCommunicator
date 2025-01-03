@@ -17,6 +17,7 @@
 
 	private async Task CreateGroup()
 	{
+		if (string.IsNullOrEmpty(Name) || string.IsNullOrEmpty(UniqueIdentifier)) return;
 		await OnCreateGroup.InvokeAsync(new GroupCreateDto(Name, UniqueIdentifier));
 	}
 }

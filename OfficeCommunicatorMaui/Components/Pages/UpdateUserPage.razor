@@ -11,7 +11,7 @@
 
 @code {
     [Parameter]
-	public User user { get; set; } = new User();
+    public User user { get; set; }
 
     [Parameter]
     public EventCallback<UserUpdateDto> OnUpdate { get; set; }
@@ -35,7 +35,6 @@
 
     private async Task Update()
     {
-        if (user.Name.Equals(name) && user.ZoomUrl.Equals(zoomUrl) && string.IsNullOrEmpty(password)) return;
         if (!string.IsNullOrEmpty(password) && password.Length < 5) return;
         var user = new UserUpdateDto(name, zoomUrl, password);
 		await OnUpdate.InvokeAsync(user);

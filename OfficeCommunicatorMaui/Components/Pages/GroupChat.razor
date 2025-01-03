@@ -7,7 +7,7 @@
 	<div style="display: flex; justify-content: space-between; align-items: center;">
 		<h1 style="margin: 0;">@Group.Name</h1>
 		<div>
-			@if (Group.Admins.Any(a => a.Id == UserId))
+			@if (Group.Admins.Any(a => a.Id == user.Id))
 			{
 				<img src="images/add-user.png" @onclick="() => OpenAddingUsers()" class="img-icons-action" />
 			}
@@ -24,9 +24,10 @@
 		<div class="messages-container" @ref="MessagesContainer">
 			@foreach (var message in Group.Chat.Messages)
 			{
-				<div class="message-wrapper @(message.UserId == UserId ? "my-message" : "other-message")">
+					<div class="message-wrapper @(message.UserId == user.Id ? "my-message" : "other-message")">
+					<div>@message.User.Name</div>
 					<div style="display: flex">
-						@if (message.UserId == UserId)
+						@if (message.UserId == user.Id)
 						{
 							<img src="images/delete.png" class="image-action" @onclick="() => DeleteMessage(message.Id)" />
 							<img src="images/pencil.png" class="image-action" @onclick="() => ActivateUpdateMessage(message.Id)" />
@@ -39,7 +40,7 @@
 									<p class="file-link" @onclick="() => DownloadFile(file.Id, file.MessageId, file.Name)" style="padding-right: 10px;">
 										@file.Name
 									</p>
-									@if (message.UserId == UserId)
+									@if (message.UserId == user.Id)
 									{
 										<img src="images/delete.png" class="image-action" @onclick="() => DeleteDocument(file.Id, message.Id)" />
 
@@ -48,6 +49,7 @@
 							}
 						</div>
 					</div>
+                    <div>@message.Date.ToString("HH:mm")</div>
 				</div>
 			}
 		</div>
@@ -109,20 +111,20 @@
 		<div class="add-user">
 			<h3>Chat members</h3>
 			<div class="contact-list">
-				@foreach (var user in Group.Users)
+				@foreach (var userIterate in Group.Users)
 				{
 					<div class="list-item">
 						<img src="images/contact.png" alt="Contact Image" class="contact-image" />
 						<div class="contact-details">
-							<div class="contact-name">@user.Name</div>
-							<div class="contact-unique">@user.UniqueName</div>
-							<div class="contact-email">@user.Email</div>
-							<div>@(Group.Admins.Any(a => a.Id == user.Id) ? "ADMIN" : "USER")</div>
+							<div class="contact-name">@userIterate.Name</div>
+							<div class="contact-unique">@userIterate.UniqueName</div>
+							<div class="contact-email">@userIterate.Email</div>
+							<div>@(Group.Admins.Any(a => a.Id == userIterate.Id) ? "ADMIN" : "USER")</div>
 						</div>
-						@if (Group.Admins.Any(a => a.Id == UserId) && !Group.Admins.Any(a => a.Id == user.Id))
+						@if (Group.Admins.Any(a => a.Id == user.Id) && !Group.Admins.Any(a => a.Id == userIterate.Id))
 						{
-							<button class="add-button" @onclick="() => AddAdmin(user.Id)">Make admin</button>
-							<button class="add-button" @onclick="() => RemoveUserFromGroup(user.Id)">Remove</button>
+							<button class="add-button" @onclick="() => AddAdmin(userIterate.Id)">Make admin</button>
+							<button class="add-button" @onclick="() => RemoveUserFromGroup(userIterate.Id)">Remove</button>
 						}
 					</div>
 				}
@@ -139,7 +141,7 @@
 	public Group Group { get; set; }
 
 	[Parameter]
-	public int UserId { get; set; }
+	public User user { get; set; }
 
 	[Parameter]
 	public List<Contact> Contacts { get; set; }
@@ -248,7 +250,8 @@
 		Group.Chat.Messages.Add(new Message()
 			{
 				Content = content,
-				UserId = UserId,
+				UserId = user.Id,
+				User = user,
 				ChatId = Group.ChatId,
 				Date = DateTime.Now,
 				UniqueIdentifier = uniqueIdentifier,
@@ -256,17 +259,17 @@
 			});
 		string copyContent = content;
 		content = string.Empty;
-		await OnSendMessage.InvokeAsync(new MessageStorageModel(UserId, uniqueIdentifier, Group.ChatId, copyContent, nameof(Group), SelectedFiles));
+		await OnSendMessage.InvokeAsync(new MessageStorageModel(user.Id, uniqueIdentifier, Group.ChatId, copyContent, nameof(Group), SelectedFiles));
 		SelectedFiles.Clear();
 	}
 
 
 	public async Task RemoveUserFromGroup(int userId)
 	{
-		User? user = Group.Users.FirstOrDefault(u => u.Id == userId);
-		if (user == null) return;
-		Group.Users.Remove(user);
-		userContactsUnadded.Add(user);
+		User? userRemoved = Group.Users.FirstOrDefault(u => u.Id == userId);
+		if (userRemoved == null) return;
+		Group.Users.Remove(userRemoved);
+		userContactsUnadded.Add(userRemoved);
 		await OnRemoveUserFromGroup.InvokeAsync(userId);
 	}
 
@@ -297,9 +300,9 @@
 
 	private async Task AddUser(int userId)
 	{
-		User? user = userContactsUnadded.FirstOrDefault(u => u.Id == userId);
+		User? userAdded = userContactsUnadded.FirstOrDefault(u => u.Id == userId);
 		if (user == null) return;
-		Group.Users.Add(user);
+		Group.Users.Add(userAdded);
 		userContactsUnadded.RemoveAll(u => u.Id == userId);
 		await OnAddUser.InvokeAsync(userId);
 	}
@@ -331,7 +334,7 @@
 				Content = content, 
 				ChatId = Group.ChatId, 
 				Id = updatingMessageId, 
-				UserId = UserId, 
+				UserId = user.Id, 
 				UniqueIdentifier = message.UniqueIdentifier,
 				CommunicationType = nameof(Group)
 			});

@@ -39,11 +39,11 @@
 
     <div style="display: flex;">
         <div style="width:5%; text-align:center; margin-top: 30px;">
-            <img class="img-action" src="images/chat.png" @onclick="() => OpenWindow(0)" />
-            <img class="img-action" src="images/add-user.png" @onclick="() => OpenWindow(1)" />
+            <img class="img-action" src="images/chat.png" @onclick="() => OpenChat()" />
+            <img class="img-action" src="images/add-user.png" @onclick="() => OpenAddingContact()" />
             <img class="img-action" src="images/add-group.png" @onclick="() => OpenWindow(2)" />
             <img class="img-action" src="images/edit-user.png" @onclick="() => OpenWindow(3)" />
-            <img class="img-action" src="images/logout.png" @onclick="() => OpenWindow(4)" />
+            <img class="img-action" src="images/logout.png" @onclick="() => OnLogout.InvokeAsync()" />
         </div>
 
         @if (openedWindow == 0)
@@ -74,7 +74,7 @@
                 @if (isGroupOpened)
                 {
                     <GroupChat Group="selectedGroup" OnAddUser="AddUserToGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile"
-                    OnSendMessage="SendMessage" OnAddAdmin="AddAdmin" Contacts="user.Contacts" UserId="user.Id" OnRemoveUserFromGroup="RemoveUserFromGroup"
+                    OnSendMessage="SendMessage" OnAddAdmin="AddAdmin" Contacts="user.Contacts" user="user" OnRemoveUserFromGroup="RemoveUserFromGroup"
                     OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" OnLeaveGroup="LeaveGroup" />
                 }
                 @if (isContactOpened)
@@ -526,7 +526,13 @@
             user.Contacts.Add(contact);
             await HandleContactSelected(contact);
             await hubConnection.SendAsync("SubscribeChat", contact.ChatId);
-            await hubConnection.SendAsync("CreateContact", userId, contact);
+            await hubConnection.SendAsync("CreateContact", userId, new Contact()
+            {
+                UserId = userId,
+                ChatId = contact.ChatId,
+				AssociatedUserId = user.Id,
+				AssociatedUser = user,
+            });
             await OpenChat();
             await InvokeAsync(StateHasChanged);
         }
@@ -732,10 +738,10 @@
         }
         else
         {
-			user.Name = userUpdate.Name ?? user.Name;
-			user.ZoomUrl = userUpdate.ZoomUrl ?? user.ZoomUrl;
-			openedWindow = 0;
-			await InvokeAsync(StateHasChanged);
+            user.Name = userUpdate.Name ?? user.Name;
+            user.ZoomUrl = userUpdate.ZoomUrl ?? user.ZoomUrl;
+            openedWindow = 0;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -764,16 +770,19 @@
 
     public async Task CallUser(int callerUserId)
     {
-        if (!isCalling)
+        if (!isCalling && !isCallingRequest)
         {
             isCalling = true;
             string userName = user.Contacts.FirstOrDefault(c => c.AssociatedUserId == callerUserId)?.AssociatedUser.Name ?? string.Empty;
             if (string.IsNullOrEmpty(userName)) return;
+
             userCall = new CallInfo() { UserId = callerUserId, UserName = userName };
             await hubConnection.SendAsync("CallUser", user.Id, callerUserId);
             await InvokeAsync(StateHasChanged);
-        }
 
+            await Task.Delay(20 * 1000);
+            if(userCall != null) await CancelCall(userCall);
+        }
     }
 
 
@@ -843,9 +852,10 @@
 
     public async Task OpenCreatingGroup()
     {
-        isAddingContactOpened = false;
-        isChatOpened = false;
-        isGroupCreating = true;
+        // isAddingContactOpened = false;
+        // isChatOpened = false;
+        // isGroupCreating = true;
+		openedWindow = 2;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -863,18 +873,17 @@
         if (users == null) return;
         users.RemoveAll(u => user.Contacts.Any(c => c.AssociatedUserId == u.Id) || u.Id == user.Id);
 
-        isAddingContactOpened = true;
-        isChatOpened = false;
-        isGroupCreating = false;
+		openedWindow = 1;
         await InvokeAsync(StateHasChanged);
     }
 
 
     public async Task OpenChat()
     {
-        isAddingContactOpened = false;
-        isChatOpened = true;
-        isGroupCreating = false;
+        // isAddingContactOpened = false;
+        // isChatOpened = true;
+        // isGroupCreating = false;
+		openedWindow = 0;
         await InvokeAsync(StateHasChanged);
     }
 

@@ -58,6 +58,10 @@ public class ChatController : ControllerBase
         if (!result) return BadRequest("Invalid user id");
 
         Group? group = await _groupRepository.GetGroupWithUsersAdmins(groupId, userId);
+        if(group == null) return BadRequest("Group not found");
+        foreach (var user in group.Users) user.HideUnnecessaryData();
+        foreach (var admin in group.Admins) admin.HideUnnecessaryData();
+        foreach (var message in group.Chat.Messages) message.User.HideUnnecessaryData();
         return Ok(group);
     }
 
@@ -83,7 +87,8 @@ public class ChatController : ControllerBase
         if (!result) return BadRequest("Invalid user id");
 
         groupDto.UserAuthorId = userId;
-        Group group = await _groupRepository.AddAsync(groupDto);
+        Group? group = await _groupRepository.AddAsync(groupDto);
+        if(group == null) return BadRequest("Group wasn't created");
         return Ok(group);
     }
 
@@ -219,8 +224,9 @@ public class ChatController : ControllerBase
     {
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
 
-        bool result = await _groupRepository.RemoveUserFromGroupAsync(groupId, userId);
-        if (!result) return BadRequest("User wasn't removed from the group");
+        List<Document>? documents = await _groupRepository.RemoveUserFromGroupAsync(groupId, userId);
+        if (documents == null) return BadRequest("User wasn't removed from the group");
+        if(documents.Count > 0) foreach (var document in documents) await _fileService.DeleteFileAsync(document.UniqueIdentifier);
         return Ok();
     }
 
@@ -245,8 +251,10 @@ public class ChatController : ControllerBase
     {
         if (!int.TryParse(User.FindFirst("userId")?.Value, out var userId)) return BadRequest("Invalid user id");
 
-        bool result = await _contactRepository.DeleteAsync(chatId, userId);
-        if (!result) return BadRequest("Contact wasn't removed");
+        List<Document>? documents = await _contactRepository.DeleteAsync(chatId, userId);
+        if(documents == null) return BadRequest("Contact wasn't removed");
+
+        foreach (var document in documents) await _fileService.DeleteFileAsync(document.UniqueIdentifier);
         return Ok();
     }
 

@@ -44,17 +44,17 @@ namespace OfficeCommunicatorAPI.Repositories
             return await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userDto.Email);
         }
 
-        public async Task<UserPresentDto?> GetUserPresentByIdWithIncludeAsync(int id)
-        {
-            User? user = await _dbContext.Users
-                .Include(u => u.Groups)
-                .Include(u => u.Contacts)
-                .ThenInclude(c => c.AssociatedUser)
-                .FirstOrDefaultAsync(u => u.Id == id);
+        //public async Task<UserPresentDto?> GetUserPresentByIdWithIncludeAsync(int id)
+        //{
+        //    User? user = await _dbContext.Users
+        //        .Include(u => u.Groups)
+        //        .Include(u => u.Contacts)
+        //        .ThenInclude(c => c.AssociatedUser)
+        //        .FirstOrDefaultAsync(u => u.Id == id);
             
-            if (user == null) return null;
-            return _mapper.Map<UserPresentDto>(user);
-        }
+        //    if (user == null) return null;
+        //    return _mapper.Map<UserPresentDto>(user);
+        //}
 
         public async Task<User> AddAsync(UserDto userDto)
         {

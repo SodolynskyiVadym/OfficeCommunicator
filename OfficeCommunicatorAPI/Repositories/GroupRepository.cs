@@ -6,7 +6,7 @@ using OfficeCommunicatorAPI.Services;
 
 namespace OfficeCommunicatorAPI.Repositories;
 
-public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
+public class GroupRepository
 {
     private readonly OfficeDbContext _dbContext;
     private readonly IMapper _mapper;
@@ -40,6 +40,9 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
             .Include(g => g.Chat)
             .ThenInclude(c => c.Messages)
             .ThenInclude(m => m.Documents)
+            .Include(g => g.Chat)
+            .ThenInclude(c => c.Messages)
+            .ThenInclude(m => m.User)
             .FirstOrDefaultAsync(g => g.Id == groupId && g.Users.FirstOrDefault(u => u.Id == userId) != null);
     }
     
@@ -115,27 +118,36 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
 
 
 
-    public async Task<bool> RemoveUserFromGroupAsync(int groupId, int userId)
+    public async Task<List<Document>?> RemoveUserFromGroupAsync(int groupId, int userId)
     {
         Group? group = await _dbContext.Groups
             .Include(g => g.Users)
             .Include(g => g.Admins)
             .FirstOrDefaultAsync(g => g.Id == groupId);
 
-        if (group == null) return false;
-        if (!group.Users.Any(u => u.Id == userId)) return false;
+        if (group == null) return null;
+        if (!group.Users.Any(u => u.Id == userId)) return null;
         User? user = await _dbContext.Users.FindAsync(userId);
-        if (user == null) return false;
+        if (user == null) return null;
 
         group.Users.Remove(user);
         group.Admins.Remove(user);
-        Console.WriteLine($"Count of users in group is {group.Users.Count()}");
-        foreach (var u in group.Users)
+
+        if (group.Users.Count() == 0)
         {
-            Console.WriteLine($"User in group is {u.Name}");
+            Chat? chat = _dbContext.Chats
+                .Include(c => c.Messages)
+                .ThenInclude(m => m.Documents)
+                .FirstOrDefault(c => c.Id == group.ChatId);
+            _dbContext.Groups.Remove(group);
+            if (chat != null) _dbContext.Chats.Remove(chat);
+
+            await _dbContext.SaveChangesAsync();
+            return chat?.Messages.SelectMany(m => m.Documents).ToList();
         }
-        if (group.Users.Count() == 0) _dbContext.Groups.Remove(group);
-        return await _dbContext.SaveChangesAsync() > 0;
+
+        if(!(await _dbContext.SaveChangesAsync() > 0)) return null;
+        return new List<Document>();
     }
 
     public async Task<bool> RemoveUserFromGroupAsAdminAsync(int groupId, int userId, int adminUserId)
@@ -168,14 +180,19 @@ public class GroupRepository : IRepository<Group, GroupDto, GroupUpdateDto>
     }
 
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<List<Document>?> DeleteAsync(int id)
     {
-        Group? group = await _dbContext.Groups.FindAsync(id);
-        if (group == null) return false;
+        Group? group = await _dbContext.Groups
+            .Include(g => g.Chat)
+            .ThenInclude(c => c.Messages)
+            .ThenInclude(m => m.Documents)
+            .FirstOrDefaultAsync(g => g.Id == id);
+        if (group == null) return null;
         
-        _dbContext.Groups.Remove(group);    
-        int result = await _dbContext.SaveChangesAsync();
-        return result > 0;
+        _dbContext.Groups.Remove(group);  
+        _dbContext.Chats.Remove(group.Chat);
+        if(!(await _dbContext.SaveChangesAsync() > 0)) return null;
+        return group.Chat.Messages.SelectMany(m => m.Documents).ToList();
     }
     
     

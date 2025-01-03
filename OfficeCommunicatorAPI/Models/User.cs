@@ -12,11 +12,7 @@ public class User
     public string ZoomUrl { get; set; }
     public string AzureToken { get; set; }
     public string AzureIdentity { get; set; }
-
-    [JsonIgnore]
     public byte[] PasswordHash { get; set; }
-
-    [JsonIgnore]
     public byte[] PasswordSalt { get; set; }
 
     [JsonIgnore]
@@ -24,4 +20,18 @@ public class User
 
     [JsonIgnore]
     public IEnumerable<Contact> Contacts { get; set; }
+
+    public void HideSensitiveData()
+    {
+        PasswordHash = new byte[0];
+        PasswordSalt = new byte[0];
+    }
+
+    public void HideUnnecessaryData()
+    {
+        AzureToken = string.Empty;
+        AzureIdentity = string.Empty;
+        PasswordHash = new byte[0];
+        PasswordSalt = new byte[0];
+    }
 }

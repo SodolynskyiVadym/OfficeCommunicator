@@ -122,14 +122,19 @@ public class ContactRepository
         return (contact, associatedContact);
     }
 
-    public async Task<bool> DeleteAsync(int chatId, int userId)
+    public async Task<List<Document>?> DeleteAsync(int chatId, int userId)
     {
         List<Contact> contacts = await _dbContext.Contacts.Where(c => c.ChatId == chatId && (c.UserId == userId || c.AssociatedUserId == userId)).ToListAsync();
-
-        if(contacts.Count() == 0) return false;
+        Chat? chat = await _dbContext.Chats
+            .Include(c => c.Messages)
+            .ThenInclude(m => m.Documents)
+            .FirstOrDefaultAsync(c => c.Id == chatId);
+        if (chat == null) return null;
+        if (contacts.Count == 0) return null;
         _dbContext.Contacts.RemoveRange(contacts);
-        await _dbContext.SaveChangesAsync();
-        return true;
+        _dbContext.Chats.Remove(chat);
+        if (!(await _dbContext.SaveChangesAsync() > 0)) return null;
+        return chat.Messages.SelectMany(m => m.Documents).ToList();
     }
     
     
