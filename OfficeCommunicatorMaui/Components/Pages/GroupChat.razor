@@ -24,7 +24,7 @@
 		<div class="messages-container" @ref="MessagesContainer">
 			@foreach (var message in Group.Chat.Messages)
 			{
-					<div class="message-wrapper @(message.UserId == user.Id ? "my-message" : "other-message")">
+				<div class="message-wrapper @(message.UserId == user.Id ? "my-message" : "other-message")">
 					<div>@message.User.Name</div>
 					<div style="display: flex">
 						@if (message.UserId == user.Id)
@@ -43,13 +43,12 @@
 									@if (message.UserId == user.Id)
 									{
 										<img src="images/delete.png" class="image-action" @onclick="() => DeleteDocument(file.Id, message.Id)" />
-
 									}
 								</div>
 							}
 						</div>
 					</div>
-                    <div>@message.Date.ToString("HH:mm")</div>
+					<div>@message.Date.ToString("HH:mm")</div>
 				</div>
 			}
 		</div>
@@ -72,12 +71,15 @@
 						<InputFile @key="i" OnChange="HandleFileSelection" style="@GetInputFileStyle(i)" multiple></InputFile>
 					}
 				</div>
-				@foreach (var file in SelectedFiles)
-				{
-					<p>@file.Name</p>
-				}
 			}
 		</div>
+		@foreach(var documnt in SelectedFiles)
+		{
+			<div style="display: flex; text-align: center">
+				<div>@documnt.Name</div>
+				<img src="images/delete.png" class="image-action" @onclick="() => SelectedFiles.Remove(documnt)" />
+			</div>
+		}
 	}
 
 
@@ -377,6 +379,12 @@
 
 			await InvokeAsync(StateHasChanged);
 		}
+	}
+
+
+	private async Task RemoveSelectedFile(IBrowserFile file)
+	{
+		SelectedFiles.Remove(file);
 	}
 
 

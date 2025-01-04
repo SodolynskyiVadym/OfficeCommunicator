@@ -62,8 +62,14 @@
 				}
 			</div>
 		}
-
 	</div>
+	@foreach (var documnt in SelectedFiles)
+	{
+		<div style="display: flex; text-align: center">
+			<div>@documnt.Name</div>
+			<img src="images/delete.png" class="image-action" @onclick="() => SelectedFiles.Remove(documnt)" />
+		</div>
+	}
 </div>
 
 @code {

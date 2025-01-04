@@ -73,6 +73,8 @@
             {
                 @if (isGroupOpened)
                 {
+                    <GroupChat Group="selectedGroup" Contacts="user.Contacts" user="user"/>
+
                     <GroupChat Group="selectedGroup" OnAddUser="AddUserToGroup" OnCallGroup="CallGroup" OnDownloadFile="DownloadFile"
                     OnSendMessage="SendMessage" OnAddAdmin="AddAdmin" Contacts="user.Contacts" user="user" OnRemoveUserFromGroup="RemoveUserFromGroup"
                     OnDeleteDocument="RemoveDocument" OnDeleteMessage="RemoveMessage" OnUpdateMessage="UpdateMessage" OnLeaveGroup="LeaveGroup" />
